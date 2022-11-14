@@ -3,7 +3,7 @@ A compilation of self-learned projects to showcase my ability to independently d
 
 **Neural Network Visualizer**
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif" width="400" height="400" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif" width="800" height="800" />
 
 
 
