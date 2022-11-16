@@ -8,9 +8,7 @@ import math
 import pybullet as p
 import pybullet_data
 
-def calculateRoboAngle(inputAngle):
-
-    return 0 
+#PLEASE ACCEPT ME :)
 
 kuka_file = "kuka_iiwa/model.urdf"
 p.connect(p.GUI)
@@ -50,11 +48,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
                                 mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                 mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
-                                 )               
-        #get right_shoulder coordinate value 
-        #get right_elbow coordinate value 
-        #take arctan of (y2-y1)/(x2-x1)
-        #print value
+                                 )              
 
         try:
             landmarks = results.pose_landmarks.landmark
@@ -75,23 +69,25 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         right_x1 = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x
         right_y1 = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y
 
-        left_arm_S2E_angle = math.atan(((left_y2-left_y1)/(left_x2-left_x1)))
+        left_arm_S2E_angle = math.atan(((left_y2-left_y1)/(left_x2-left_x1))) 
         left_arm_E2W_angle = math.atan(((left_y3-left_y2)/(left_x3-left_x2)))
         right_arm_S2E_angle = math.atan(((right_y2-right_y1)/(right_x2-right_x1)))
         right_arm_E2W_angle = math.atan(((right_y3-right_y2)/(right_x3-right_x2)))
+        global_right_arm_E2W_angle = right_arm_S2E_angle - right_arm_E2W_angle
+        global_left_arm_E2W_angle = left_arm_S2E_angle - left_arm_E2W_angle
 
         p.setJointMotorControl2(leftKukaId, 0, p.POSITION_CONTROL, targetPosition=1.57)
         p.setJointMotorControl2(leftKukaId, 1, p.POSITION_CONTROL, targetPosition=0)
         p.setJointMotorControl2(leftKukaId, 2, p.POSITION_CONTROL, targetPosition=0)
         p.setJointMotorControl2(leftKukaId, 3, p.POSITION_CONTROL, targetPosition=(left_arm_S2E_angle+0.67))
-        p.setJointMotorControl2(leftKukaId, 5, p.POSITION_CONTROL, targetPosition=-(left_arm_E2W_angle))
+        p.setJointMotorControl2(leftKukaId, 5, p.POSITION_CONTROL, targetPosition=(global_left_arm_E2W_angle))
 
         p.setJointMotorControl2(rightKukaId, 0, p.POSITION_CONTROL, targetPosition=1.57)
         p.setJointMotorControl2(rightKukaId, 1, p.POSITION_CONTROL, targetPosition=0)
         p.setJointMotorControl2(rightKukaId, 2, p.POSITION_CONTROL, targetPosition=0)
         p.setJointMotorControl2(rightKukaId, 3, p.POSITION_CONTROL, targetPosition=(right_arm_S2E_angle-0.67))
-        p.setJointMotorControl2(rightKukaId, 5, p.POSITION_CONTROL, targetPosition=(right_arm_E2W_angle))
-        print(((-right_arm_S2E_angle)))
+        p.setJointMotorControl2(rightKukaId, 5, p.POSITION_CONTROL, targetPosition=(global_right_arm_E2W_angle))
+
         p.stepSimulation()
 
         cv2.imshow('Mediapipe Feed', image)
