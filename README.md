@@ -14,6 +14,6 @@ Regardless, it is interesting to visualize how layer activations change as train
 
 **Real-Time Robot Arm Control using Pose Estimation**
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Real-time%206DoF%20Robot%20Arm%20Control%20with%20Pose%20Estimation/Pose%20Estimate%20to%20Robot%20Control.gif" width="800" height="800" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Real-time%206DoF%20Robot%20Arm%20Control%20with%20Pose%20Estimation/Pose%20Estimate%20to%20Robot%20Control.gif" width="800" height="450" />
 
 This project involved using a pre-trained pose estimation model (implemented via MediaPipe) to control a Kuka robot arm in a virtual PyBullet environment. While not particularly technically challenging beyond utilizng some simple 2D kinematics, this project was a fun way to implement a useful AI model and learn the PyBullet API in the process. Future improvements could involve using a 3D pose estimation model to allow for more complex manuvers with the robot arm. Perhaps these complex 3D manuvers could be turned into expert-trajectories that can help speed up training of an agent learning via deep reinforcement. 
