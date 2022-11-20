@@ -170,8 +170,15 @@ class SimplifiedWorld(gym.Env):
         obs = np.array(depthImg)
         plt.imshow(obs)
         plt.savefig(str(self._envStepCounter) + ".png")
+        near, far = 0.2, 2
+
         obs = obs[np.newaxis, :, :]
-        
+        depth_buffer = np.asarray(depthImg, np.float32).reshape(
+            (self._height, self._width))
+        obs = 1. * far * near / (far - (far - near) * depth_buffer)
+        plt.imshow(obs)
+        plt.savefig(str(self._envStepCounter) + "modified.png")
+        obs = obs[np.newaxis, :, :]
         return obs
 
     def closeGripper(self):
@@ -276,10 +283,10 @@ class SimplifiedWorld(gym.Env):
         else:
             return 0
 
-env = SimplifiedWorld(renders = False)
-#env = make_vec_env(lambda: env, n_envs=1)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cpu')
-#env = VecNormalize(env)
+env = SimplifiedWorld(renders = True)
+env = make_vec_env(lambda: env, n_envs=1)
+model = SAC("CnnPolicy", env, verbose=1, device = 'cuda')
+env = VecNormalize(env)
 model.learn(total_timesteps=1000000, log_interval=4)
 
 #UNIT TEST - ensure multiple random initialization result in block position/orientation congruent with Baris thesis
