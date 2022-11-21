@@ -198,6 +198,7 @@ class SimplifiedWorld(gym.Env):
             yaw *= self._max_yaw_rotation / yaw
         return translation, yaw
 
+    """
     def step(self,action):
         high = np.r_[[self._max_translation]
                          * 3, self._max_yaw_rotation, 1.]
@@ -214,12 +215,12 @@ class SimplifiedWorld(gym.Env):
         elif open_close < 0. and self._gripper_open:
             self.closeGripper()
             self._gripper_open = False
-        """
+        
         print("Commanded translation: ", translation)
         print("Commanded translation magnitude: ", np.linalg.norm(translation))
         print("Commanded yaw: ", yaw_rotation)
         print(" ")
-        """
+        
         pos, orn, _, _, _, _ = self._physicsClient.getLinkState(self.model_id, 3)
         #print("Current Pos: ", pos)
         #print("Current Orn: ", orn)
@@ -283,6 +284,74 @@ class SimplifiedWorld(gym.Env):
             print(reward)
 
         return self._observation, reward, done, info
+    """
+    def step(self, action):
+        high = np.r_[[self._max_translation]
+                         * 3, self._max_yaw_rotation, 1.]
+        self._action_scaler = MinMaxScaler((-1, 1))
+        self._action_scaler.fit(np.vstack((-1. * high, high)))
+        action = self._action_scaler.inverse_transform(np.array([action]))
+        action = action.squeeze()
+        translation, yaw_rotation = self._clip_translation_vector(action[:3], action[3])
+        open_close = action[4]
+
+        if open_close > 0. and not self._gripper_open:
+            self.openGripper()
+            self._gripper_open = True
+        elif open_close < 0. and self._gripper_open:
+            self.closeGripper()
+            self._gripper_open = False
+
+        #take translations & add to existing pos of gripper
+
+        gripperPosX = self._physicsClient.getJointState(self.model_id, 0)[0]
+        gripperPosY = self._physicsClient.getJointState(self.model_id, 1)[0]
+        gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
+        gripperYaw = self._physicsClient.getJointState(self.model_id, 3)[0]
+
+        dx = translation[0]
+        dy = translation[1]
+        dz = translation[2]
+        dYaw = yaw_rotation
+
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 0,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=gripperPosX+dx,
+            force=100.)
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 1,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=gripperPosY+dy,
+            force=100.)
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 2,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=gripperPosZ+dz,
+            force=100.)
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 3,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=gripperYaw+dYaw,
+            force=100.)
+
+        self._physicsClient.stepSimulation()
+        self._envStepCounter += 1
+        self._observation = self.getObservation()
+        done = self.getTerminated() 
+        reward = self.getReward() 
+
+        if(self._envStepCounter > self._maxSteps):
+            info = {"TimeLimit.truncated" : True}
+        else:
+            info = {}
+
+        if(done):
+            print(reward)
+
+        return self._observation, reward, done, info
+
+
 
     def getTerminated(self):
         #pulls location of end-effector
