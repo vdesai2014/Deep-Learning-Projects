@@ -4,6 +4,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
 import pybullet as p 
+import pybullet_data
 import gym 
 import math
 import gym
@@ -43,7 +44,7 @@ class SimplifiedWorld(gym.Env):
         self._width = 64
         self._height = 64
         self.terminated = False 
-
+        self.extent = 0.1
         transform_dict = {'translation' : [0.0, 0.0573, 0.0451], 'rotation' : [0.0, -0.1305, 0.9914, 0.0]}
         self._transform = transform_utils.from_dict(transform_dict) 
 
@@ -69,8 +70,22 @@ class SimplifiedWorld(gym.Env):
         self._envStepCounter = 0
 
         #Load white floor
-        plane = self._physicsClient.loadURDF("plane/planeRL.urdf", [0, 0, 0])
+        plane = self._physicsClient.loadURDF("plane/planeRL.urdf", [0., 0., -0.196], [0., 0., 0., 1.])
 
+        numBlocks = 3
+
+        self._blocks = []
+        for i in range (numBlocks):
+            randBlock = np.random.randint(100, 999)
+            path = self._urdfRoot + '/random_urdfs/' + str(randBlock) + '/' + str(randBlock) + '.urdf'
+            print(path)
+            #path = [os.path.join(self._urdfRoot, 'random_urdfs',(str(randBlock)), str(randBlock) + '.urdf')]
+            position = np.r_[np.random.uniform(-self.extent, self.extent), np.random.uniform(-self.extent, self.extent), 0.1]
+            orientation = transformations.random_quaternion()
+            block = self._physicsClient.loadURDF(path, position, orientation)
+            self._blocks.append(block)
+
+        """
         #Load custom object @ random position (within bounds of simple env)
         squareBounds = 0.01
         xpos = squareBounds * random.random()
@@ -79,7 +94,11 @@ class SimplifiedWorld(gym.Env):
         orn = p.getQuaternionFromEuler([0, 0, ang])
         self.blockUid = p.loadURDF(os.path.join(self._urdfRoot, "block.urdf"), xpos, ypos, 0,
                                orn[0], orn[1], orn[2], orn[3])
-
+        """
+        
+        for i in range(1000):
+            self._physicsClient.stepSimulation() 
+        
         #load simple gripper, use 0,1,2 to control X, Y, Z pos, 3 to control gripper yaw, & 7/9 to close gripper
         start_pos = [0, 0, 0.4]
         start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14]) #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
@@ -101,7 +120,6 @@ class SimplifiedWorld(gym.Env):
         cx = 32.19 
         cy = 32.0 
         """
-
         transform = np.copy(self._transform)
 
         # Randomize translation
@@ -149,7 +167,7 @@ class SimplifiedWorld(gym.Env):
         obs = np.array(depthImg)
         obs = obs[np.newaxis, :, :]
         """
-        print(self._physicsClient.getLinkState(self.model_id, 3))
+        #print(self._physicsClient.getLinkState(self.model_id, 3))
         pos, orn, _, _, _, _ = self._physicsClient.getLinkState(self.model_id, 3)
         h_world_robot = transform_utils.from_pose(pos, orn)
         h_camera_world = np.linalg.inv(np.dot(h_world_robot, self._h_robot_camera))
@@ -166,18 +184,23 @@ class SimplifiedWorld(gym.Env):
             height=self._height,
             viewMatrix=gl_view_matrix,
             projectionMatrix=projectionMatrix)
-        
+
         obs = np.array(depthImg)
+        """
+        
         plt.imshow(obs)
         plt.savefig(str(self._envStepCounter) + ".png")
+        """
         near, far = 0.2, 2
 
         obs = obs[np.newaxis, :, :]
         depth_buffer = np.asarray(depthImg, np.float32).reshape(
             (self._height, self._width))
         obs = 1. * far * near / (far - (far - near) * depth_buffer)
+        """
         plt.imshow(obs)
         plt.savefig(str(self._envStepCounter) + "modified.png")
+        """
         obs = obs[np.newaxis, :, :]
         return obs
 
@@ -210,12 +233,22 @@ class SimplifiedWorld(gym.Env):
 
     def step(self,action):
         #takes in 3 floating point values (x, y, angle), steps actuator in that direction
+        translation = action[:2]
+        yaw = action[2]
+        actionNorm = np.linalg.norm(translation)
+        if(actionNorm > 0.03):
+            translation *= 0.03/actionNorm
+        if(yaw > 0.15):
+            yaw = 0.15
+        elif(yaw < 0):
+            yaw = 0
+        print("Translation: ", translation)
+        print("Yaw: ", yaw)
         print(self._envStepCounter)
-        speedConstant = 0.005
-        dx = action[0] * speedConstant
-        dy = action[1] * speedConstant
+        dx = translation[0] 
+        dy = translation[1] 
         dz = 0.001
-        dA = action[2] * 2 * speedConstant #CONFIRM - speed constant for translation is reasonable 
+        dA = yaw #CONFIRM - speed constant for translation is reasonable 
         gripperPosX = self._physicsClient.getJointState(self.model_id, 0)[0]
         gripperPosY = self._physicsClient.getJointState(self.model_id, 1)[0]
         gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
@@ -278,14 +311,15 @@ class SimplifiedWorld(gym.Env):
     
     def getReward(self): 
         #evaluates block position & assigns reward if block height is correct
-        if(self._physicsClient.getBasePositionAndOrientation(self.blockUid)[0][2] > 0.05):
-            return 1
-        else:
-            return 0
+        for i in range(len(self._blocks)):
+            if(self._physicsClient.getBasePositionAndOrientation(self._blocks[i])[0][2] > 0.05):
+                return 1
+            else:
+                return 0
 
 env = SimplifiedWorld(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cuda')
+model = SAC("CnnPolicy", env, verbose=1, device = 'cpu')
 env = VecNormalize(env)
 model.learn(total_timesteps=1000000, log_interval=4)
 
