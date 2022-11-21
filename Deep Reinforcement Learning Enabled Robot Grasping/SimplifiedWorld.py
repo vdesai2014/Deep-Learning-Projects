@@ -30,6 +30,7 @@ from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvWrapper
 from stable_baselines3.common.env_util import make_vec_env
 import transform_utils
 import transformations
+from sklearn.preprocessing import MinMaxScaler
 
 class SimplifiedWorld(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -45,6 +46,10 @@ class SimplifiedWorld(gym.Env):
         self._height = 64
         self.terminated = False 
         self.extent = 0.1
+        self._max_translation = 0.03
+        self._max_yaw_rotation = 0.15
+        self.main_joints = [0, 1, 2, 3] 
+        self._initial_height = 0.3
         transform_dict = {'translation' : [0.0, 0.0573, 0.0451], 'rotation' : [0.0, -0.1305, 0.9914, 0.0]}
         self._transform = transform_utils.from_dict(transform_dict) 
 
@@ -60,10 +65,12 @@ class SimplifiedWorld(gym.Env):
                                         high=255,
                                         shape=(1, self._height, self._width),
                                         dtype=np.uint8)
-        self.action_space = gym.spaces.Box(-1.,1., shape=(3,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(-1.,1., shape=(5,), dtype=np.float32)
     
     def reset(self):
         self.terminated = False
+        self._gripper_open = False
+        self.endEffectorAngle = 0.
         self._physicsClient.resetSimulation()
         self._physicsClient.setPhysicsEngineParameter(numSolverIterations=150)
         self._physicsClient.setGravity(0, 0, -10)
@@ -84,42 +91,16 @@ class SimplifiedWorld(gym.Env):
             orientation = transformations.random_quaternion()
             block = self._physicsClient.loadURDF(path, position, orientation)
             self._blocks.append(block)
-
-        """
-        #Load custom object @ random position (within bounds of simple env)
-        squareBounds = 0.01
-        xpos = squareBounds * random.random()
-        ypos = squareBounds * random.random()
-        ang = 3.1415925438 * random.random()
-        orn = p.getQuaternionFromEuler([0, 0, ang])
-        self.blockUid = p.loadURDF(os.path.join(self._urdfRoot, "block.urdf"), xpos, ypos, 0,
-                               orn[0], orn[1], orn[2], orn[3])
-        """
         
         for i in range(1000):
             self._physicsClient.stepSimulation() 
         
         #load simple gripper, use 0,1,2 to control X, Y, Z pos, 3 to control gripper yaw, & 7/9 to close gripper
-        start_pos = [0, 0, 0.4]
+        start_pos = [0, 0, 0]
         start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14]) #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
         self.model_id = self._physicsClient.loadSDF("gripper/wsg50_one_motor_gripper_new.sdf")[0]
         self._physicsClient.resetBasePositionAndOrientation(self.model_id, start_pos, start_orn)
         self._physicsClient.stepSimulation()
-        """
-        # Randomize focal lengths fx and fy
-        camera_info['K'][0] += np.random.uniform(-f, f)
-        camera_info['K'][4] += np.random.uniform(-f, f)
-
-        fx = 69.76 + np.np.random.uniform(-4, 4)
-        fy = 77.25 + np.np.random.uniform(-4, 4)
-        
-        # Randomize optical center cx and cy
-        camera_info['K'][2] += np.random.uniform(-c, c)
-        camera_info['K'][5] += np.random.uniform(-c, c)
-
-        cx = 32.19 
-        cy = 32.0 
-        """
         transform = np.copy(self._transform)
 
         # Randomize translation
@@ -140,33 +121,6 @@ class SimplifiedWorld(gym.Env):
         self._physicsClient.disconnect()
     
     def getObservation(self):
-        """
-        #take gripper pose, attach camera to gripper, return 64x64x1 depth numpy array
-        gripperPos = self._physicsClient.getBasePositionAndOrientation(self.model_id)[0]
-        gripperPosX = self._physicsClient.getJointState(self.model_id, 0)[0]
-        gripperPosY = self._physicsClient.getJointState(self.model_id, 1)[0]
-        gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0] - 0.2
-        yawAngle_x = math.sin(self._physicsClient.getJointState(self.model_id, 3)[0])
-        yawAngle_y = math.cos(self._physicsClient.getJointState(self.model_id, 3)[0])
-        
-        viewMatrix = p.computeViewMatrix(                               
-            cameraEyePosition=[-gripperPosX, gripperPosY, -gripperPosZ],
-            cameraTargetPosition=[-gripperPosX, gripperPosY, 0],
-            cameraUpVector=[yawAngle_x, yawAngle_y, 0])
-        projectionMatrix = p.computeProjectionMatrixFOV(
-            fov=45.0,
-            aspect=1.0,
-            nearVal=0.02,
-            farVal=3.0)
-        _, _, _, depthImg, _ = self._physicsClient.getCameraImage(
-            width=self._width, 
-            height=self._height,
-            viewMatrix=viewMatrix,
-            projectionMatrix=projectionMatrix)
-
-        obs = np.array(depthImg)
-        obs = obs[np.newaxis, :, :]
-        """
         #print(self._physicsClient.getLinkState(self.model_id, 3))
         pos, orn, _, _, _, _ = self._physicsClient.getLinkState(self.model_id, 3)
         h_world_robot = transform_utils.from_pose(pos, orn)
@@ -186,21 +140,11 @@ class SimplifiedWorld(gym.Env):
             projectionMatrix=projectionMatrix)
 
         obs = np.array(depthImg)
-        """
-        
-        plt.imshow(obs)
-        plt.savefig(str(self._envStepCounter) + ".png")
-        """
         near, far = 0.2, 2
-
         obs = obs[np.newaxis, :, :]
         depth_buffer = np.asarray(depthImg, np.float32).reshape(
             (self._height, self._width))
         obs = 1. * far * near / (far - (far - near) * depth_buffer)
-        """
-        plt.imshow(obs)
-        plt.savefig(str(self._envStepCounter) + "modified.png")
-        """
         obs = obs[np.newaxis, :, :]
         return obs
 
@@ -218,6 +162,20 @@ class SimplifiedWorld(gym.Env):
         for i in range(100):
             self._physicsClient.stepSimulation() 
 
+    def openGripper(self):
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 7,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=0,
+            force=100.)
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 9,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=0,
+            force=100.)
+        for i in range(100):
+            self._physicsClient.stepSimulation() 
+
     def raiseGripper(self):
         for i in range(1000):
             gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
@@ -231,49 +189,85 @@ class SimplifiedWorld(gym.Env):
             if (self._physicsClient.getBasePositionAndOrientation(self.blockUid)[0][2] > 0.23):
                 break
 
+    def _clip_translation_vector(self, translation, yaw):
+        """Clip the vector if its norm exceeds the maximal allowed length."""
+        length = np.linalg.norm(translation)
+        if length > self._max_translation:
+            translation *= self._max_translation / length
+        if yaw > self._max_yaw_rotation:
+            yaw *= self._max_yaw_rotation / yaw
+        return translation, yaw
+
     def step(self,action):
-        #takes in 3 floating point values (x, y, angle), steps actuator in that direction
-        translation = action[:2]
-        yaw = action[2]
-        actionNorm = np.linalg.norm(translation)
-        if(actionNorm > 0.03):
-            translation *= 0.03/actionNorm
-        if(yaw > 0.15):
-            yaw = 0.15
-        elif(yaw < 0):
-            yaw = 0
-        print("Translation: ", translation)
-        print("Yaw: ", yaw)
-        print(self._envStepCounter)
-        dx = translation[0] 
-        dy = translation[1] 
-        dz = 0.001
-        dA = yaw #CONFIRM - speed constant for translation is reasonable 
-        gripperPosX = self._physicsClient.getJointState(self.model_id, 0)[0]
-        gripperPosY = self._physicsClient.getJointState(self.model_id, 1)[0]
-        gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
-        gripperYaw = self._physicsClient.getJointState(self.model_id, 3)[0]
+        high = np.r_[[self._max_translation]
+                         * 3, self._max_yaw_rotation, 1.]
+        self._action_scaler = MinMaxScaler((-1, 1))
+        self._action_scaler.fit(np.vstack((-1. * high, high)))
+        action = self._action_scaler.inverse_transform(np.array([action]))
+        action = action.squeeze()
+        translation, yaw_rotation = self._clip_translation_vector(action[:3], action[3])
+        open_close = action[4]
+
+        if open_close > 0. and not self._gripper_open:
+            self.openGripper()
+            self._gripper_open = True
+        elif open_close < 0. and self._gripper_open:
+            self.closeGripper()
+            self._gripper_open = False
+        """
+        print("Commanded translation: ", translation)
+        print("Commanded translation magnitude: ", np.linalg.norm(translation))
+        print("Commanded yaw: ", yaw_rotation)
+        print(" ")
+        """
+        pos, orn, _, _, _, _ = self._physicsClient.getLinkState(self.model_id, 3)
+        #print("Current Pos: ", pos)
+        #print("Current Orn: ", orn)
+        #print(" ")
+        _, _, yaw = transformations.euler_from_quaternion(orn)
+        print(yaw)
+        #Calculate transformation matrices
+        T_world_old = transformations.compose_matrix(
+            angles=[np.pi, 0., yaw], translate=pos)
+        T_old_to_new = transformations.compose_matrix(
+            angles=[0., 0., yaw_rotation], translate=translation)
+        T_world_new = np.dot(T_world_old, T_old_to_new)
+        self.endEffectorAngle += yaw_rotation
+        target_pos, target_orn = transform_utils.to_pose(T_world_new)
+        #print("Target Pos: ", str(np.linalg.norm(target_pos)))
+        #print("Target Pos: ", target_pos)
+        #print("Target Orn: ", target_orn)
+        target_pos[1] *= -1
+        target_pos[2] = -1 * (target_pos[2] - self._initial_height)
+        yaw = self.endEffectorAngle
+        comp_pos = np.r_[target_pos, yaw]
 
         self._physicsClient.setJointMotorControl2(
             self.model_id, 0,
             controlMode=p.POSITION_CONTROL,
-            targetPosition=(gripperPosX + dx),
+            targetPosition=comp_pos[0],
             force=100.)
+        #print("Commanding joint number 0 to position", comp_pos[0]) 
         self._physicsClient.setJointMotorControl2(
             self.model_id, 1,
             controlMode=p.POSITION_CONTROL,
-            targetPosition=(gripperPosY + dy),
+            targetPosition=comp_pos[1],
             force=100.)
+        #print("Commanding joint number 1 to position", comp_pos[1]) 
         self._physicsClient.setJointMotorControl2(
             self.model_id, 2,
             controlMode=p.POSITION_CONTROL,
-            targetPosition=(gripperPosZ + dz),
+            targetPosition=comp_pos[2],
             force=100.)
-        self._physicsClient.setJointMotorControl2( 
-                self.model_id, 3,
-                controlMode=p.POSITION_CONTROL,
-                targetPosition=(gripperYaw + dA),
-                force=100.)
+        #print("Commanding joint number 2 to position", comp_pos[2]) 
+        self._physicsClient.setJointMotorControl2(
+            self.model_id, 3,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=comp_pos[3],
+            force=100.)
+        #print("Commanding joint number 3 to position", comp_pos[3]) 
+        #print(" ")
+
         self._physicsClient.stepSimulation()
         self._envStepCounter += 1
         self._observation = self.getObservation()
@@ -297,14 +291,6 @@ class SimplifiedWorld(gym.Env):
         
         if (self.terminated or self._envStepCounter > self._maxSteps):
             self.terminated = True
-            return True
-        
-        gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
-
-        if(gripperPosZ > 0.13): 
-            self.terminated = True
-            self.closeGripper()
-            self.raiseGripper()
             return True
         
         return False
