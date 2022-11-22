@@ -49,7 +49,7 @@ class SimplifiedWorld(gym.Env):
         self._max_translation = 0.03
         self._max_yaw_rotation = 0.15
         self.main_joints = [0, 1, 2, 3] 
-        self._initial_height = 0.3
+        self._initial_height = 0.15
         transform_dict = {'translation' : [0.0, 0.0573, 0.0451], 'rotation' : [0.0, -0.1305, 0.9914, 0.0]}
         self._transform = transform_utils.from_dict(transform_dict) 
 
@@ -95,9 +95,9 @@ class SimplifiedWorld(gym.Env):
             self._physicsClient.stepSimulation() 
         
         #load simple gripper, use 0,1,2 to control X, Y, Z pos, 3 to control gripper yaw, & 7/9 to close gripper
-        start_pos = [0, 0, 0]
-        #start_orn = [0, 0, 0, 1] #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
-        start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14])
+        start_pos = [0, 0, self._initial_height]
+        start_orn = [1, 0, 0, 0] #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
+        #start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14])
         self.model_id = self._physicsClient.loadSDF("gripper/wsg50_one_motor_gripper_new.sdf", globalScaling = 1.)[0]
         self._physicsClient.resetBasePositionAndOrientation(self.model_id, start_pos, start_orn)
         self._physicsClient.stepSimulation()
@@ -198,8 +198,9 @@ class SimplifiedWorld(gym.Env):
             yaw *= self._max_yaw_rotation / yaw
         return translation, yaw
 
-    """
     def step(self,action):
+        #print(action)
+        #action = [ 0.06817436, -0.07152063,  0,  0.47535467, -0.5590924]
         high = np.r_[[self._max_translation]
                          * 3, self._max_yaw_rotation, 1.]
         self._action_scaler = MinMaxScaler((-1, 1))
@@ -216,17 +217,17 @@ class SimplifiedWorld(gym.Env):
             self.closeGripper()
             self._gripper_open = False
         
-        print("Commanded translation: ", translation)
-        print("Commanded translation magnitude: ", np.linalg.norm(translation))
-        print("Commanded yaw: ", yaw_rotation)
-        print(" ")
+        #print("Commanded translation: ", translation)
+        #print("Commanded translation magnitude: ", np.linalg.norm(translation))
+        #print("Commanded yaw: ", yaw_rotation)
+        #print(" ")
         
         pos, orn, _, _, _, _ = self._physicsClient.getLinkState(self.model_id, 3)
         #print("Current Pos: ", pos)
         #print("Current Orn: ", orn)
         #print(" ")
         _, _, yaw = transformations.euler_from_quaternion(orn)
-        print(yaw)
+        #print(yaw)
         #Calculate transformation matrices
         T_world_old = transformations.compose_matrix(
             angles=[np.pi, 0., yaw], translate=pos)
@@ -240,6 +241,7 @@ class SimplifiedWorld(gym.Env):
         #print("Target Orn: ", target_orn)
         target_pos[1] *= -1
         target_pos[2] = -1 * (target_pos[2] - self._initial_height)
+        #print(self._initial_height)
         yaw = self.endEffectorAngle
         comp_pos = np.r_[target_pos, yaw]
 
@@ -281,9 +283,11 @@ class SimplifiedWorld(gym.Env):
             info = {}
 
         if(done):
-            print(reward)
+            if(reward == 1):
+                print("REWARD!!!")
 
         return self._observation, reward, done, info
+
     """
     def step(self, action):
         high = np.r_[[self._max_translation]
@@ -350,6 +354,7 @@ class SimplifiedWorld(gym.Env):
             print(reward)
 
         return self._observation, reward, done, info
+    """
 
     def getTerminated(self):
         #pulls location of end-effector
@@ -364,15 +369,24 @@ class SimplifiedWorld(gym.Env):
     
     def getReward(self): 
         #evaluates block position & assigns reward if block height is correct
+        rewardFlag = False
         for i in range(len(self._blocks)):
-            if(self._physicsClient.getBasePositionAndOrientation(self._blocks[i])[0][2] > 0.05):
-                return 1
+            if(self._physicsClient.getBasePositionAndOrientation(self._blocks[i])[0][2] > -0.15):
+                #print("Block at " + str(i) + " is " + str(self._physicsClient.getBasePositionAndOrientation(self._blocks[i])[0][2]))
+                rewardFlag = True
             else:
-                return 0
+                #print("Block at " + str(i) + " is " + str(self._physicsClient.getBasePositionAndOrientation(self._blocks[i])[0][2]))
+                rewardFlag = False
+        if (rewardFlag):
+            #print("REWARD!!")
+            return 1
+        else:
+            #print("NO Reward :( !")
+            return -0.1
 
-env = SimplifiedWorld(renders = True)
+env = SimplifiedWorld(renders = False)
 env = make_vec_env(lambda: env, n_envs=1)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cpu', train_freq = (1, "episode"))
+model = SAC("CnnPolicy", env, verbose=1, device = 'cuda')
 env = VecNormalize(env)
 model.learn(total_timesteps=1000000, log_interval=4)
 
