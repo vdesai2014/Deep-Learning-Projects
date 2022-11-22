@@ -72,7 +72,7 @@ class SimplifiedWorld(gym.Env):
         self._gripper_open = False
         self.endEffectorAngle = 0.
         self._physicsClient.resetSimulation()
-        self._physicsClient.setPhysicsEngineParameter(numSolverIterations=150)
+        self._physicsClient.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep = 1./240., enableConeFriction = 1)
         self._physicsClient.setGravity(0, 0, -10)
         self._envStepCounter = 0
 
@@ -85,7 +85,6 @@ class SimplifiedWorld(gym.Env):
         for i in range (numBlocks):
             randBlock = np.random.randint(100, 999)
             path = self._urdfRoot + '/random_urdfs/' + str(randBlock) + '/' + str(randBlock) + '.urdf'
-            print(path)
             #path = [os.path.join(self._urdfRoot, 'random_urdfs',(str(randBlock)), str(randBlock) + '.urdf')]
             position = np.r_[np.random.uniform(-self.extent, self.extent), np.random.uniform(-self.extent, self.extent), 0.1]
             orientation = transformations.random_quaternion()
@@ -97,8 +96,9 @@ class SimplifiedWorld(gym.Env):
         
         #load simple gripper, use 0,1,2 to control X, Y, Z pos, 3 to control gripper yaw, & 7/9 to close gripper
         start_pos = [0, 0, 0]
-        start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14]) #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
-        self.model_id = self._physicsClient.loadSDF("gripper/wsg50_one_motor_gripper_new.sdf")[0]
+        #start_orn = [0, 0, 0, 1] #CONFIRM - random environment intialization is congruent with simple base environment outlined by Baris
+        start_orn = p.getQuaternionFromEuler([3.14, 0, 3.14])
+        self.model_id = self._physicsClient.loadSDF("gripper/wsg50_one_motor_gripper_new.sdf", globalScaling = 1.)[0]
         self._physicsClient.resetBasePositionAndOrientation(self.model_id, start_pos, start_orn)
         self._physicsClient.stepSimulation()
         transform = np.copy(self._transform)
@@ -351,8 +351,6 @@ class SimplifiedWorld(gym.Env):
 
         return self._observation, reward, done, info
 
-
-
     def getTerminated(self):
         #pulls location of end-effector
         #kills sim if terminated is True or counter has exceeded limit 
@@ -374,7 +372,7 @@ class SimplifiedWorld(gym.Env):
 
 env = SimplifiedWorld(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cpu')
+model = SAC("CnnPolicy", env, verbose=1, device = 'cpu', train_freq = (1, "episode"))
 env = VecNormalize(env)
 model.learn(total_timesteps=1000000, log_interval=4)
 
