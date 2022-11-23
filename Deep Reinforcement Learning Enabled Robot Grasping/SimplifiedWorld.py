@@ -36,7 +36,7 @@ class SimplifiedWorld(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
 
     def __init__(self, renders = False):
-        self._maxSteps = 700
+        self._maxSteps = 150
         self._timeStep = 1./240
         self._urdfRoot = pybullet_data.getDataPath()
         self._observation = []
@@ -75,6 +75,8 @@ class SimplifiedWorld(gym.Env):
         self._physicsClient.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep = 1./240., enableConeFriction = 1)
         self._physicsClient.setGravity(0, 0, -10)
         self._envStepCounter = 0
+        self._lifting = False
+        self.lift_dist = 0.01
 
         #Load white floor
         plane = self._physicsClient.loadURDF("plane/planeRL.urdf", [0., 0., -0.196], [0., 0., 0., 1.])
@@ -113,7 +115,7 @@ class SimplifiedWorld(gym.Env):
         q = transformations.quaternion_about_axis(angle, axis)
         transform = np.dot(transformations.quaternion_matrix(q), transform)
         self._h_robot_camera = transform
-
+        self._target_joint_pos = 0.0
         rgb = self.getObservation()
         return rgb
 
@@ -161,6 +163,7 @@ class SimplifiedWorld(gym.Env):
             force=100.)
         for i in range(100):
             self._physicsClient.stepSimulation() 
+        self._target_joint_pos = 0.05
 
     def openGripper(self):
         self._physicsClient.setJointMotorControl2(
@@ -175,19 +178,7 @@ class SimplifiedWorld(gym.Env):
             force=100.)
         for i in range(100):
             self._physicsClient.stepSimulation() 
-
-    def raiseGripper(self):
-        for i in range(1000):
-            gripperPosZ = self._physicsClient.getJointState(self.model_id, 2)[0]
-            dz = -0.001
-            self._physicsClient.setJointMotorControl2(
-            self.model_id, 2,
-            controlMode=p.POSITION_CONTROL,
-            targetPosition=(gripperPosZ + dz),
-            force=200.)
-            self._physicsClient.stepSimulation()
-            if (self._physicsClient.getBasePositionAndOrientation(self.blockUid)[0][2] > 0.23):
-                break
+        self._target_joint_pos = 0.0
 
     def _clip_translation_vector(self, translation, yaw):
         """Clip the vector if its norm exceeds the maximal allowed length."""
@@ -274,17 +265,14 @@ class SimplifiedWorld(gym.Env):
         self._physicsClient.stepSimulation()
         self._envStepCounter += 1
         self._observation = self.getObservation()
-        done = self.getTerminated() 
-        reward = self.getReward() 
-
+        reward = self.getReward()
         if(self._envStepCounter > self._maxSteps):
+            self.terminated = True
             info = {"TimeLimit.truncated" : True}
+            print("No Reward.")
         else:
             info = {}
-
-        if(done):
-            if(reward == 1):
-                print("REWARD!!!")
+        done = self.terminated
 
         return self._observation, reward, done, info
 
@@ -355,19 +343,34 @@ class SimplifiedWorld(gym.Env):
 
         return self._observation, reward, done, info
     """
+    def get_gripper_width(self):
+        left_joint_state = self._physicsClient.getJointState(
+            self.model_id, 7)[0]
+        right_joint_state = self._physicsClient.getJointState(
+            self.model_id, 9)[0]
+        left_finger_pos = 0.05 - left_joint_state
+        right_finger_pos = 0.05 - right_joint_state
 
-    def getTerminated(self):
-        #pulls location of end-effector
-        #kills sim if terminated is True or counter has exceeded limit 
-        #executes grasp if end-effector Z height meets threshold
-        
-        if (self.terminated or self._envStepCounter > self._maxSteps):
-            self.terminated = True
-            return True
-        
-        return False
+        return left_finger_pos + right_finger_pos
     
     def getReward(self): 
+        position, _, _, _, _ , _ = self._physicsClient.getLinkState(self.model_id, 3)
+        robot_height = position[2]
+        tol = 0.005
+        if(self._target_joint_pos == 0.05 and self.get_gripper_width() > tol):
+            if not self._lifting:
+                self._start_height = robot_height
+                self._lifting = True
+            if robot_height - self._start_height > 0:
+                self.terminated = True
+                print("Reward!")
+                return 1.
+        else:
+            self._lifting = False
+        
+        return -0.01
+
+    """
         #evaluates block position & assigns reward if block height is correct
         rewardFlag = False
         for i in range(len(self._blocks)):
@@ -383,11 +386,12 @@ class SimplifiedWorld(gym.Env):
         else:
             #print("NO Reward :( !")
             return -0.1
+    """
 
-env = SimplifiedWorld(renders = False)
+env = SimplifiedWorld(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cuda')
 env = VecNormalize(env)
+model = SAC("CnnPolicy", env, verbose=1, device = 'cpu', seed = 0, buffer_size = 1000000, batch_size = 64)
 model.learn(total_timesteps=1000000, log_interval=4)
 
 #UNIT TEST - ensure multiple random initialization result in block position/orientation congruent with Baris thesis
