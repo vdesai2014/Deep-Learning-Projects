@@ -19,7 +19,6 @@ import pybullet_data
 from pkg_resources import parse_version
 import pybullet_utils.bullet_client as bc
 import stable_baselines3
-from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.sac.policies import CnnPolicy
 from stable_baselines3 import SAC
 from matplotlib import pyplot as plt
@@ -27,6 +26,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvWrapper
+#from stable_baselines.common.cmd_util import make_vec_env
 from stable_baselines3.common.env_util import make_vec_env
 import transform_utils
 import transformations
@@ -45,7 +45,7 @@ class SimplifiedWorld(gym.Env):
         self._width = 64
         self._height = 64
         self.terminated = False 
-        self.extent = 0.1
+        self.extent = 0.01
         self._max_translation = 0.03
         self._max_yaw_rotation = 0.15
         self.main_joints = [0, 1, 2, 3] 
@@ -63,8 +63,7 @@ class SimplifiedWorld(gym.Env):
 
         self.observation_space = spaces.Box(low=0,
                                         high=255,
-                                        shape=(1, self._height, self._width),
-                                        dtype=np.uint8)
+                                        shape=(2, self._height, self._width), dtype = np.uint8)
         self.action_space = gym.spaces.Box(-1.,1., shape=(5,), dtype=np.float32)
     
     def reset(self):
@@ -92,9 +91,8 @@ class SimplifiedWorld(gym.Env):
             orientation = transformations.random_quaternion()
             block = self._physicsClient.loadURDF(path, position, orientation)
             self._blocks.append(block)
-        
-        for i in range(1000):
-            self._physicsClient.stepSimulation() 
+            for i in range(1000):
+                self._physicsClient.stepSimulation() 
         
         #load simple gripper, use 0,1,2 to control X, Y, Z pos, 3 to control gripper yaw, & 7/9 to close gripper
         start_pos = [0, 0, self._initial_height]
@@ -142,13 +140,55 @@ class SimplifiedWorld(gym.Env):
             projectionMatrix=projectionMatrix)
 
         obs = np.array(depthImg)
-        near, far = 0.2, 2
+        """
+        for i in range(64):
+            for j in range(64):
+                if(j == 0):
+                    print("[")
+                if(j == 32):
+                    print(" ")
+                print(round(obs[i][j], 3), end = ' ')
+                if(j == 63):
+                    print(" ")
+                    print("]")
+            print(" ")
+        """
+        near, far = 0.02, 2
         obs = obs[np.newaxis, :, :]
         depth_buffer = np.asarray(depthImg, np.float32).reshape(
             (self._height, self._width))
         obs = 1. * far * near / (far - (far - near) * depth_buffer)
-        obs = obs[np.newaxis, :, :]
-        return obs
+        obs *= 255
+        #obs = obs[np.newaxis, :, :]
+        sensor_pad = np.zeros((64, 64))
+        self._obs_scaler = 1. / 0.1
+        state = self._obs_scaler * self.get_gripper_width() * 255
+        sensor_pad[0][0] = state
+        obs_stacked = np.dstack((obs, sensor_pad))
+        obs_stackedd = np.reshape(obs_stacked, (2, 64, 64))
+        for i in range(64):
+            for j in range(64):
+                if(j == 0):
+                    print("[")
+                if(j == 32):
+                    print(" ")
+                print(round(obs_stacked[i][j][0], 3), end = ' ')
+                if(j == 63):
+                    print(" ")
+                    print("]")
+            print(" ")
+        for i in range(64):
+            for j in range(64):
+                if(j == 0):
+                    print("[")
+                if(j == 32):
+                    print(" ")
+                print(round(obs_stacked[i][j][1], 3), end = ' ')
+                if(j == 63):
+                    print(" ")
+                    print("]")
+            print(" ")
+        return obs_stackedd
 
     def closeGripper(self):
         self._physicsClient.setJointMotorControl2(
@@ -388,10 +428,10 @@ class SimplifiedWorld(gym.Env):
             return -0.1
     """
 
-env = SimplifiedWorld(renders = True)
+env = SimplifiedWorld(renders = False)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=1, device = 'cpu', seed = 0, buffer_size = 1000000, batch_size = 64)
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, device = 'cpu')
 model.learn(total_timesteps=1000000, log_interval=4)
 
 #UNIT TEST - ensure multiple random initialization result in block position/orientation congruent with Baris thesis
