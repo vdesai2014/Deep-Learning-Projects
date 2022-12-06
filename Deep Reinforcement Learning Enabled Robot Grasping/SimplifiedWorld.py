@@ -28,6 +28,7 @@ from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvWrapper
 #from stable_baselines.common.cmd_util import make_vec_env
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.env_checker import check_env
 import transform_utils
 import transformations
 from sklearn.preprocessing import MinMaxScaler
@@ -50,8 +51,6 @@ class SimplifiedWorld(gym.Env):
         self._max_yaw_rotation = 0.15
         self.main_joints = [0, 1, 2, 3] 
         self._initial_height = 0.15
-        transform_dict = {'translation' : [0.0, 0.0573, 0.0451], 'rotation' : [0.0, -0.1305, 0.9914, 0.0]}
-        self._transform = transform_utils.from_dict(transform_dict) 
 
         if self._renders:
             self._physicsClient = bc.BulletClient(connection_mode = p.GUI)
@@ -64,7 +63,7 @@ class SimplifiedWorld(gym.Env):
         self.observation_space = spaces.Box(low=0,
                                         high=255,
                                         shape=(2, self._height, self._width), dtype = np.uint8)
-        self.action_space = gym.spaces.Box(-1.,1., shape=(5,), dtype=np.float32)
+        self.action_space = spaces.Box(-1.,1., shape=(5,), dtype=np.float32)
     
     def reset(self):
         self.terminated = False
@@ -101,8 +100,10 @@ class SimplifiedWorld(gym.Env):
         self.model_id = self._physicsClient.loadSDF("gripper/wsg50_one_motor_gripper_new.sdf", globalScaling = 1.)[0]
         self._physicsClient.resetBasePositionAndOrientation(self.model_id, start_pos, start_orn)
         self._physicsClient.stepSimulation()
+        
+        transform_dict = {'translation' : [0.0, 0.0573, 0.0451], 'rotation' : [0.0, -0.1305, 0.9914, 0.0]}
+        self._transform = transform_utils.from_dict(transform_dict) 
         transform = np.copy(self._transform)
-
         # Randomize translation
         magnitue = np.random.uniform(0., 0.002)
         direction = transform_utils.random_unit_vector()
@@ -159,13 +160,13 @@ class SimplifiedWorld(gym.Env):
             (self._height, self._width))
         obs = 1. * far * near / (far - (far - near) * depth_buffer)
         obs *= 255
-        #obs = obs[np.newaxis, :, :]
         sensor_pad = np.zeros((64, 64))
         self._obs_scaler = 1. / 0.1
         state = self._obs_scaler * self.get_gripper_width() * 255
         sensor_pad[0][0] = state
         obs_stacked = np.dstack((obs, sensor_pad))
         obs_stackedd = np.reshape(obs_stacked, (2, 64, 64))
+        """
         for i in range(64):
             for j in range(64):
                 if(j == 0):
@@ -188,6 +189,7 @@ class SimplifiedWorld(gym.Env):
                     print(" ")
                     print("]")
             print(" ")
+        """
         return obs_stackedd
 
     def closeGripper(self):
@@ -275,7 +277,8 @@ class SimplifiedWorld(gym.Env):
         #print(self._initial_height)
         yaw = self.endEffectorAngle
         comp_pos = np.r_[target_pos, yaw]
-
+        #print("Commanded X: ", target_pos[0])
+        #print("Commanded Y: ", target_pos[1])
         self._physicsClient.setJointMotorControl2(
             self.model_id, 0,
             controlMode=p.POSITION_CONTROL,
@@ -313,7 +316,7 @@ class SimplifiedWorld(gym.Env):
         else:
             info = {}
         done = self.terminated
-
+        time.sleep(10000)
         return self._observation, reward, done, info
 
     """
@@ -428,10 +431,10 @@ class SimplifiedWorld(gym.Env):
             return -0.1
     """
 
-env = SimplifiedWorld(renders = False)
+env = SimplifiedWorld(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, device = 'cpu')
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, device = 'cpu', train_freq = (1, "episode"))
 model.learn(total_timesteps=1000000, log_interval=4)
 
 #UNIT TEST - ensure multiple random initialization result in block position/orientation congruent with Baris thesis
