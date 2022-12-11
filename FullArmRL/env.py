@@ -9,13 +9,12 @@ from gym import spaces
 from collections import namedtuple
 from attrdict import AttrDict
 from tqdm import tqdm
-from stable_baselines.sac.policies import CnnPolicy
-from stable_baselines import SAC
-from stable_baselines.common.vec_env import VecNormalize
+from stable_baselines3.sac.policies import CnnPolicy
+from stable_baselines3 import SAC
+from stable_baselines3.common.vec_env import VecNormalize
 #from stable_baselines.common.vec_env.base_vec_env import VecEnv, VecEnvWrapper
-from stable_baselines.common.cmd_util import make_vec_env
-#from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines.common.env_checker import check_env
+#from stable_baselines.common.cmd_util import make_vec_env
+from stable_baselines3.common.env_util import make_vec_env
 import transform_utils
 import transformations
 from robot import UR5Robotiq85, UR5Robotiq140
@@ -49,7 +48,7 @@ class FullArmRL(gym.Env):
         p.resetDebugVisualizerCamera(1.3, 180, -41, [0.52, -0.2, -0.33])
         self.observation_space = spaces.Box(low=0,
                                         high=255,
-                                        shape=(self._height, self._width, 2))
+                                        shape=(1, self._height, self._width), dtype = np.uint8)
         self.action_space = spaces.Box(-1.,1., shape=(3,), dtype=np.float32)
         self.reset() 
 
@@ -148,10 +147,9 @@ class FullArmRL(gym.Env):
         near, far = self._near, self._far
         depth_buffer = np.asarray(depthImg, np.float32).reshape(
             (64, 64))
-        depth = 1. * far * near / (far - (far - near) * depth_buffer)
-        zeros = np.zeros((64, 64))
-        obs = np.dstack((depth, zeros))
-        #plt.imsave((str(self._envStepCounter)+'.png'), depth)
+        depth = (1. * far * near / (far - (far - near) * depth_buffer)) * 255
+        obs = np.expand_dims(depth, 0)
+        obs = obs.astype(np.uint8)
         return obs
     
     def _clip_translation_vector(self, translation, yaw):
@@ -215,7 +213,7 @@ class FullArmRL(gym.Env):
             info = {}
 
         obs = self.getObservation()
-        return obs, reward, done, info 
+        return obs, reward, done, {"is_success":reward==1, "episode_step": self._envStepCounter, "episode_rewards": reward}
     
 
     def debugStep(self):
@@ -246,7 +244,7 @@ class FullArmRL(gym.Env):
 env = FullArmRL(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003)
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu')
 model.learn(total_timesteps=1000000, log_interval=4)
 """
 env = FullArmRL(renders = True)
