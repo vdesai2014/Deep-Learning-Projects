@@ -45,7 +45,11 @@ My game-plan going forward is shown below. I will continue to update this sectio
 *References*
 
 [1] - https://github.com/chao0716/pybullet_ur5_robotiq/tree/robotflow
+
 [2] - https://github.com/BarisYazici/deep-rl-grasping
+
 [3] - https://stable-baselines3.readthedocs.io/en/master/modules/sac.html
+
 [4] - https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html
+
 [5] - https://spinningup.openai.com/en/latest/
