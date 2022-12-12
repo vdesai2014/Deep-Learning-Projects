@@ -3,7 +3,7 @@ A compilation of self-learned projects to showcase my ability to independently w
 
 **Neural Network Visualizer**
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif" width="600" height="600" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif" width="800" height="800" />
 
 
 
@@ -11,8 +11,10 @@ In order to better understand artificial neural networks, I implemented a feed-f
 
 Regardless, it is interesting to visualize how layer activations change as training progresses over 20,000 epochs, and also how relatively few neurons make a meaningful impact on the networks prediction. This effect is well-known and prominent for small networks such as the one being visualized. This is the reason why network weights are typically "pruned" after being trained, as keeping only pieces of the network with larger weights allows for much faster performance at inference time. Interestingly, this [effect can also be used in reverse](https://ai.facebook.com/blog/understanding-the-generalization-of-lottery-tickets-in-neural-networks/), by starting with a very specific initialization & training only specific parts of the network. The difficulty with this approach when training large networks lies in identifying exactly which intersection of network structure and specific initiailization weights is the "lottery ticket".
 
-#References
+*References*
+
 [1] - https://github.com/fanghao6666/neural-networks-and-deep-learning/blob/master/py/Building%20your%20Deep%20Neural%20Network%20Step%20by%20Step%20v3.py
+
 [2] - https://matplotlib.org/stable/index.html
 
 
@@ -22,8 +24,10 @@ Regardless, it is interesting to visualize how layer activations change as train
 
 This project involved using a pre-trained pose estimation model (implemented via MediaPipe) to control a Kuka robot arm in a virtual PyBullet environment. While not particularly technically challenging beyond utilizng some simple 2D kinematics, this project was a fun way to implement a useful AI model and learn the PyBullet API in the process. Future improvements could involve using a 3D pose estimation model to allow for more complex manuvers with the robot arm. Perhaps these complex 3D manuvers could be turned into expert-trajectories that can help speed up training of an agent learning via deep reinforcement. 
 
-#References
+*References*
+
 [1] - https://gerardmaggiolino.medium.com/creating-openai-gym-environments-with-pybullet-part-1-13895a622b24
+
 [2] - https://www.youtube.com/watch?v=06TE_U21FK4
 
 **Object Grasping with 6-DoF Robot Arm - Updated on Dec 11th, 2022**
