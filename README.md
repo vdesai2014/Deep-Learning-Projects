@@ -41,3 +41,11 @@ My game-plan going forward is shown below. I will continue to update this sectio
 1) Simplify getting learned policy to converge by directly providing X,Y,Z coordinates of block as an observation for the multi-layer perceptron network. 
 2) Implement learned policy in real life by using a camera, OpenCV, and ArUco boards to extract ground truth X/Y/Z coordinates of object to grasp. Feed this observation into the learned policy to control Dof-Bot and grasp object. 
 3) Once the sim2real gap has been crossed with a more simple observation space, go back and make the original end-to-end vision based policy work without fiducials or OpenCV. 
+
+*References*
+
+[1] - https://github.com/chao0716/pybullet_ur5_robotiq/tree/robotflow
+[2] - https://github.com/BarisYazici/deep-rl-grasping
+[3] - https://stable-baselines3.readthedocs.io/en/master/modules/sac.html
+[4] - https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html
+[5] - https://spinningup.openai.com/en/latest/
