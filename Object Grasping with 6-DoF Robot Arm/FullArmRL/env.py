@@ -36,7 +36,7 @@ class FullArmRL(gym.Env):
         self._width = 64
         self._height = 64
         self.terminated = False 
-        self.extent = 0.1
+        self.extent = 0.2
         self._max_translation = 0.004 
         self._max_yaw_rotation = 0.15 
         self._initial_height = 0.2
@@ -201,7 +201,7 @@ class FullArmRL(gym.Env):
 
         p.stepSimulation()
         self._envStepCounter += 1
-        self.getObservation()
+        obs = self.getObservation()
 
         if(self._envStepCounter == self._endofEpisodeStep):
             reward = self.endOfEpisode()
@@ -212,7 +212,6 @@ class FullArmRL(gym.Env):
             done = False 
             info = {}
 
-        obs = self.getObservation()
         return obs, reward, done, {"is_success":reward==1, "episode_step": self._envStepCounter, "episode_rewards": reward}
     
 
@@ -244,7 +243,7 @@ class FullArmRL(gym.Env):
 env = FullArmRL(renders = True)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu')
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu', train_freq = (1, "episode"))
 model.learn(total_timesteps=1000000, log_interval=4)
 """
 env = FullArmRL(renders = True)
