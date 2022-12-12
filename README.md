@@ -32,15 +32,15 @@ This project involved using a pre-trained pose estimation model (implemented via
 
 **Object Grasping with 6-DoF Robot Arm - Updated on Dec 11th, 2022**
 
-My goal for this project is to get a robot arm (https://www.amazon.com/dp/B08T8XG2J6) in the real world to pick up blocks. I started out with a deep reinforcement learning based approach and intended on using modern sample efficient DRL algorithms (SAC/PPO) to train a robot arm to do this in simulation. Then I planned on transferring this learned policy to the real arm and iteratively utilizing domain randomization to improve the learned policy in simulation based on real world results (or lack thereof). Unfortunately, even trying to get the learned policy to work in simulation has proven to be very challenging (see below, .gif of my simulated robot failing). The robot in the .gif is not the one I plan to use in real life. I don't have a .URDF file for it yet, but the UR5 model is similar and I can use that for now. I'll switch to the Amazon Dof-Bot once I get the UR5 working.
+My goal for this project is to get a robot arm (https://www.amazon.com/dp/B08T8XG2J6) in the real world to pick up blocks. I started out with a deep reinforcement learning based approach and intended on using modern sample efficient DRL algorithms (SAC/PPO) to train a robot arm to do this in simulation. Then I planned on transferring this learned policy to the real arm and iteratively utilizing domain randomization to improve the learned policy in simulation based on real world results (or lack thereof). Unfortunately, even trying to get the learned policy to work in simulation has proven to be very challenging (see below, .gif of my simulated robot failing). The robot in the .gif is not the one I plan to use in real life. I don't have a .URDF file for it yet, but the UR5 model is similar and I can use that for now. I'll switch to simulating the Amazon Dof-Bot once I get the UR5 working.
 
 <img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/FullArmRL/graspingFail.gif" width="600" height="338" />
 
 My game-plan going forward is shown below. I will continue to update this section as I make progress. 
 
-1) Simplify getting learned policy to converge by directly providing X,Y,Z coordinates of block as an observation for the multi-layer perceptron network. 
+1) Simplify getting learned policy to converge by directly providing X,Y,Z coordinates of block as an observation for the multi-layer perceptron network. I have already had success with this with a previous simpler Pybullet environment and am confident I can make this work.  
 2) Implement learned policy in real life by using a camera, OpenCV, and ArUco boards to extract ground truth X/Y/Z coordinates of object to grasp. Feed this observation into the learned policy to control Dof-Bot and grasp object. 
-3) Once the sim2real gap has been crossed with a more simple observation space, go back and make the original end-to-end vision based policy work without fiducials or OpenCV. 
+3) Once the sim2real gap has been crossed with a more simple observation space, go back and make the original end-to-end vision based policy work without fiducials or OpenCV. This will involve a fair bit of debugging to understand why using a CNN & normalized depth image observations makes learning so much more unstable. 
 
 *References*
 
