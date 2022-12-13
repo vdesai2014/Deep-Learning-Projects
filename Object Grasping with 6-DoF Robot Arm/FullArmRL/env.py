@@ -20,11 +20,12 @@ import transformations
 from robot import UR5Robotiq85, UR5Robotiq140
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
+from custom_obs_policy import CustomCNN
 
 class FullArmRL(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
 
-    def __init__(self, renders = False):
+    def __init__(self, renders = False, policy = "CnnPolicy"):
         self._near = 0.02
         self._far = 2
         self._endofEpisodeStep = 78
@@ -36,20 +37,27 @@ class FullArmRL(gym.Env):
         self._width = 64
         self._height = 64
         self.terminated = False 
-        self.extent = 0.2
+        self.extent = 0.1
         self._max_translation = 0.004 
         self._max_yaw_rotation = 0.15 
         self._initial_height = 0.2
+        self.policy = policy
         camRotation = p.getQuaternionFromEuler([1.157, 0, 1.571])
         transform_dict = {'translation' : [0, 0, -0.1], 'rotation' : [camRotation[0], camRotation[1], camRotation[2], camRotation[3]]} 
         self._transform = transform_utils.from_dict(transform_dict) 
 
         self.physicsClient = p.connect(p.GUI if self._renders else p.DIRECT)
         p.resetDebugVisualizerCamera(1.3, 180, -41, [0.52, -0.2, -0.33])
-        self.observation_space = spaces.Box(low=0,
-                                        high=255,
-                                        shape=(1, self._height, self._width), dtype = np.uint8)
-        self.action_space = spaces.Box(-1.,1., shape=(3,), dtype=np.float32)
+        if (policy == "CnnPolicy"):
+            self.observation_space = spaces.Box(low=0,
+                                            high=255,
+                                            shape=(2, 64, 64))
+            self.action_space = spaces.Box(-1.,1., shape=(3,), dtype=np.float32)
+        elif (policy == "MlpPolicy"):
+            self.observation_space = spaces.Box(low=-1.0,
+                                            high=1.0,
+                                            shape=(3,), dtype = np.float32)
+            self.action_space = spaces.Box(-1.,1., shape=(3,), dtype=np.float32)
         self.reset() 
 
     def reset(self):
@@ -65,18 +73,26 @@ class FullArmRL(gym.Env):
     
         #Load white floor
         plane = p.loadURDF("plane/planeRL.urdf", [0., 0., -0.1], [0., 0., 0., 1.])
-
-        numBlocks = 3
-
+        
         self._blocks = []
-        for i in range (numBlocks):
-            randBlock = np.random.randint(100, 999)
+        if (self.policy == "CnnPolicy"):
+            numBlocks = 3
+            for i in range (numBlocks):
+                randBlock = np.random.randint(100, 999)
+                path = self._urdfRoot + '/random_urdfs/' + str(randBlock) + '/' + str(randBlock) + '.urdf'
+                position = np.r_[np.random.uniform(-self.extent, self.extent), np.random.uniform(-self.extent, self.extent), 0]
+                orientation = transformations.random_quaternion()
+                block = p.loadURDF(path, position, orientation, globalScaling = 0.7)
+                self._blocks.append(block)
+        elif (self.policy == "MlpPolicy"):
+            randBlock = 103
             path = self._urdfRoot + '/random_urdfs/' + str(randBlock) + '/' + str(randBlock) + '.urdf'
             position = np.r_[np.random.uniform(-self.extent, self.extent), np.random.uniform(-self.extent, self.extent), 0]
-            orientation = transformations.random_quaternion()
+            orientation = p.getQuaternionFromEuler((0,np.pi/2,0))
             block = p.loadURDF(path, position, orientation, globalScaling = 0.7)
             self._blocks.append(block)
-            for i in range(1000):
+        
+        for i in range(1000):
                 p.stepSimulation()
 
         self.currentX = 0
@@ -87,17 +103,19 @@ class FullArmRL(gym.Env):
         self.robot.load()
         self.robot.reset([self.currentX, self.currentY, self._initial_height], self.currentYaw)
 
-        transform = np.copy(self._transform)
-        # Randomize translation
-        magnitue = np.random.uniform(0., 0.002)
-        direction = transform_utils.random_unit_vector()
-        transform[:3, 3] += magnitue * direction
-        # Randomize rotation
-        angle = np.random.uniform(0., 0.0349)
-        axis = transform_utils.random_unit_vector()
-        q = transformations.quaternion_about_axis(angle, axis)
-        transform = np.dot(transformations.quaternion_matrix(q), transform)
-        self._h_robot_camera = transform
+
+        if(self.policy == "CnnPolicy"):
+            transform = np.copy(self._transform)
+            # Randomize translation
+            magnitue = np.random.uniform(0., 0.002)
+            direction = transform_utils.random_unit_vector()
+            transform[:3, 3] += magnitue * direction
+            # Randomize rotation
+            angle = np.random.uniform(0., 0.0349)
+            axis = transform_utils.random_unit_vector()
+            q = transformations.quaternion_about_axis(angle, axis)
+            transform = np.dot(transformations.quaternion_matrix(q), transform)
+            self._h_robot_camera = transform
         
         """
 
@@ -121,6 +139,7 @@ class FullArmRL(gym.Env):
 
         p.addUserDebugLine((0.03, 0, 0.15), (0.03, 0, -0.1), lineWidth = 4.0, lifeTime = 0)
         """
+
         obs = self.getObservation()
         return obs
 
@@ -128,28 +147,33 @@ class FullArmRL(gym.Env):
         p.disconnect()
     
     def getObservation(self):
-        pos, orn, _, _, _, _ = p.getLinkState(self.robot.getRobotID(), 7)
-        h_world_robot = transform_utils.from_pose(pos, orn)
-        h_camera_world = np.linalg.inv(np.dot(h_world_robot, self._h_robot_camera))
-        gl_view_matrix = h_camera_world.copy()
-        gl_view_matrix[2, :] *= -1 # flip the Z axis to comply to OpenGL
-        gl_view_matrix = gl_view_matrix.flatten(order='F')
-        projectionMatrix = p.computeProjectionMatrixFOV(
-            fov=45.0,
-            aspect=1.0,
-            nearVal=0.02,
-            farVal=3.0)
-        _, _, _, depthImg, _ = p.getCameraImage(
-            width=self._width, 
-            height=self._height,
-            viewMatrix=gl_view_matrix,
-            projectionMatrix=projectionMatrix)
-        near, far = self._near, self._far
-        depth_buffer = np.asarray(depthImg, np.float32).reshape(
-            (64, 64))
-        depth = (1. * far * near / (far - (far - near) * depth_buffer)) * 255
-        obs = np.expand_dims(depth, 0)
-        obs = obs.astype(np.uint8)
+        if(self.policy == "CnnPolicy"):
+            pos, orn, _, _, _, _ = p.getLinkState(self.robot.getRobotID(), 7)
+            h_world_robot = transform_utils.from_pose(pos, orn)
+            h_camera_world = np.linalg.inv(np.dot(h_world_robot, self._h_robot_camera))
+            gl_view_matrix = h_camera_world.copy()
+            gl_view_matrix[2, :] *= -1 # flip the Z axis to comply to OpenGL
+            gl_view_matrix = gl_view_matrix.flatten(order='F')
+            projectionMatrix = p.computeProjectionMatrixFOV(
+                fov=45.0,
+                aspect=1.0,
+                nearVal=0.02,
+                farVal=3.0)
+            _, _, _, depthImg, _ = p.getCameraImage(
+                width=self._width, 
+                height=self._height,
+                viewMatrix=gl_view_matrix,
+                projectionMatrix=projectionMatrix)
+            near, far = self._near, self._far
+            depth_buffer = np.asarray(depthImg, np.float32).reshape(
+                (64, 64))
+            depth = (1. * far * near / (far - (far - near) * depth_buffer)) * 255
+            obs = np.expand_dims(depth, 0)
+            obs = obs.astype(np.uint8)
+            obs = np.zeros((2, 64, 64))
+        elif(self.policy == "MlpPolicy"):
+            blockX, blockY, blockZ = p.getBasePositionAndOrientation(self._blocks[0])[0]
+            obs = np.r_[blockX, blockY, blockZ]
         return obs
     
     def _clip_translation_vector(self, translation, yaw):
@@ -172,7 +196,7 @@ class FullArmRL(gym.Env):
 
     def endOfEpisode(self):
         self.robot.move_gripper(0)
-        reward = -0.1
+        reward = -0.0128
         for i in range(75):
             self.currentZ += 0.00166666667
             self.robot.move_ee([self.currentX, self.currentY, self.currentZ], self.currentYaw)
@@ -181,6 +205,8 @@ class FullArmRL(gym.Env):
             if (p.getBasePositionAndOrientation(block)[0][2] > 0):
                 reward = 1
                 print("Yay I did it!")
+            else:
+                reward = -0.1
         
         return reward
     
@@ -191,7 +217,12 @@ class FullArmRL(gym.Env):
         self.newX = self.currentX + translation[0]
         self.newY = self.currentY + translation[1]
         self.newZ = self.currentZ - (0.000833333*2)
-        self.newYaw = self.currentYaw - yaw_rotation
+        
+        if(self.policy == "CnnPolicy"):
+            self.newYaw = self.currentYaw - yaw_rotation
+        elif(self.policy == "MlpPolicy"):
+            self.newYaw = 1.571
+        
         self.robot.move_ee([self.newX, self.newY, self.newZ], self.newYaw)
 
         self.currentX = self.newX
@@ -208,7 +239,7 @@ class FullArmRL(gym.Env):
             done = True
             info = {}
         else:
-            reward = -0.1
+            reward = 0
             done = False 
             info = {}
 
@@ -240,10 +271,14 @@ class FullArmRL(gym.Env):
     def getReward(self):
         return 
 
-env = FullArmRL(renders = True)
+
+policy_kwargs = dict(
+    features_extractor_class=CustomCNN
+)
+env = FullArmRL(renders = False, policy = "CnnPolicy")
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu', train_freq = (1, "episode"))
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, policy_kwargs=policy_kwargs, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu')
 model.learn(total_timesteps=1000000, log_interval=4)
 """
 env = FullArmRL(renders = True)
