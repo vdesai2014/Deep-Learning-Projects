@@ -21,6 +21,7 @@ from robot import UR5Robotiq85, UR5Robotiq140
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from custom_obs_policy import CustomCNN
+import torch
 
 class FullArmRL(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -72,7 +73,7 @@ class FullArmRL(gym.Env):
         self.lift_dist = 0.01
     
         #Load white floor
-        plane = p.loadURDF("plane/planeRL.urdf", [0., 0., -0.1], [0., 0., 0., 1.])
+        plane = p.loadURDF("/home/vrushank/Documents/GitHub/Deep-Learning-Projects/Object Grasping with 6-DoF Robot Arm/FullArmRL/plane/planeRL.urdf", [0., 0., -0.1], [0., 0., 0., 1.])
         
         self._blocks = []
         if (self.policy == "CnnPolicy"):
@@ -275,10 +276,13 @@ class FullArmRL(gym.Env):
 policy_kwargs = dict(
     features_extractor_class=CustomCNN
 )
-env = FullArmRL(renders = False, policy = "CnnPolicy")
+env = FullArmRL(renders = True, policy = "CnnPolicy")
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, policy_kwargs=policy_kwargs, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cpu')
+for i in range(30):
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, policy_kwargs=policy_kwargs, buffer_size = 100000, batch_size = 64, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cuda')
 model.learn(total_timesteps=1000000, log_interval=4)
 """
 env = FullArmRL(renders = True)
