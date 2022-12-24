@@ -15,6 +15,7 @@ from stable_baselines3.sac.policies import CnnPolicy
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import VecNormalize
+from stable_baselines3.common.callbacks import EvalCallback
 import pybullet_utils.bullet_client as bc
 
 class MLPEnv(gym.Env):
@@ -173,8 +174,14 @@ class MLPEnv(gym.Env):
         return self.goal_pos, reward, self.terminated, info
 
 env = MLPEnv(is_render=False)
-dummyVecEnv = make_vec_env(lambda: env, n_envs=50)
+dummyVecEnv = make_vec_env(lambda: env, n_envs=1)
 vecNorm = VecNormalize(dummyVecEnv)
+evalEnv = MLPEnv()
+dummyEvalEnv = make_vec_env(lambda: evalEnv, n_envs=1)
+evalNorm = VecNormalize(dummyEvalEnv)
+eval_callback = EvalCallback(evalNorm, best_model_save_path="./logs/",
+                             log_path="./logs/", eval_freq=20000,
+                             deterministic=True, render=False, n_eval_episodes=10)
 tensorboard_path = os.path.join(os.path.dirname(__file__))
 model = SAC("MlpPolicy", vecNorm, buffer_size = 1000000, learning_rate = 0.0003, device = 'cuda', tensorboard_log=tensorboard_path)
-model.learn(total_timesteps=10000000, log_interval = 1)
+model.learn(total_timesteps=10000000, log_interval = 1, callback=eval_callback)
