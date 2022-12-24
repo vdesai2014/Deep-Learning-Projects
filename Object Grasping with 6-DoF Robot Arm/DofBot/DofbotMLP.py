@@ -161,16 +161,19 @@ class MLPEnv(gym.Env):
         else:
             reward = 0
             self.terminated = False
-
         if(endPremature):
-            info = {'distance:': self.distance, 'TimeLimit.truncated': True}
+            info = {"is_success":reward==1, "episode_step": self.step_counter, 
+            "episode_rewards": reward, 'distance:': 
+            self.distance, 'TimeLimit.truncated': True}
         else:
-            info = {'distance:': self.distance}
+            info = {"is_success":reward==1, "episode_step": self.step_counter, 
+            "episode_rewards": reward, 'distance:': 
+            self.distance}
 
         return self.goal_pos, reward, self.terminated, info
 
 env = MLPEnv(is_render=False)
-dummyVecEnv = make_vec_env(lambda: env, n_envs=20)
+dummyVecEnv = make_vec_env(lambda: env, n_envs=50)
 vecNorm = VecNormalize(dummyVecEnv)
 tensorboard_path = os.path.join(os.path.dirname(__file__))
 model = SAC("MlpPolicy", vecNorm, buffer_size = 1000000, learning_rate = 0.0003, device = 'cuda', tensorboard_log=tensorboard_path)
