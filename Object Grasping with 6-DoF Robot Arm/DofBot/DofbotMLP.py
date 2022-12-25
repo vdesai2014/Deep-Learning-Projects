@@ -16,6 +16,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3 import PPO
 import pybullet_utils.bullet_client as bc
 
 class MLPEnv(gym.Env):
@@ -183,5 +184,5 @@ eval_callback = EvalCallback(evalNorm, best_model_save_path="./logs/",
                              log_path="./logs/", eval_freq=20000,
                              deterministic=True, render=False, n_eval_episodes=10)
 tensorboard_path = os.path.join(os.path.dirname(__file__))
-model = SAC("MlpPolicy", vecNorm, buffer_size = 1000000, learning_rate = 0.0003, device = 'cuda', tensorboard_log=tensorboard_path)
+model = PPO("MlpPolicy", vecNorm, learning_rate = 0.0003, device = 'cuda', tensorboard_log=tensorboard_path)
 model.learn(total_timesteps=10000000, log_interval = 1, callback=eval_callback)
