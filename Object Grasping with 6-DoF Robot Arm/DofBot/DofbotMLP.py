@@ -114,7 +114,6 @@ class MLPEnv(gym.Env):
             self.p.setJointMotorControl2(self.armUid, i, self.p.POSITION_CONTROL, targetPosition = self.robot_joint_positions[i])
         self.p.stepSimulation()
         self.step_counter += 1
-        time.sleep(0.1)
 
         return self.reward()
     
@@ -170,7 +169,7 @@ class MLPEnv(gym.Env):
 
         return self.goal_pos, reward, self.terminated, info
 
-env = MLPEnv(is_render=True)
+env = MLPEnv(is_render=False)
 dummyVecEnv = make_vec_env(lambda: env, n_envs=1)
 vecNorm = VecNormalize(dummyVecEnv)
 evalEnv = MLPEnv()
