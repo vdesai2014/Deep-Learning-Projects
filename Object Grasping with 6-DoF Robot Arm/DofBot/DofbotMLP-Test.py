@@ -44,7 +44,7 @@ class MLPEnv(gym.Env):
 
         self.observation_space = spaces.Box(low = np.array([self.x_low_obs , self.x_high_obs]), high = np.array([self.y_low_obs, self.y_high_obs]), dtype=np.float32)
         
-        self.baseOrientation = self.p.getQuaternionFromEuler([0., 0, 0])
+        self.baseOrientation = self.p.getQuaternionFromEuler([0., -np.pi, 0])
         
         self.urdf_root_path = pybullet_data.getDataPath()
         self.reset()
@@ -61,7 +61,7 @@ class MLPEnv(gym.Env):
         self.p.setGravity(0, 0, -10)
         self.p.loadURDF(os.path.join(self.urdf_root_path, "plane.urdf"), basePosition=[0, 0, 0])
         dofbot_path = os.path.join(os.path.dirname(__file__), 'arm.urdf')
-        self.armUid = self.p.loadURDF(dofbot_path, basePosition=[0,0,0], baseOrientation = self.baseOrientation, useFixedBase=True)
+        self.armUid = self.p.loadURDF(dofbot_path, basePosition=[0,0,0.4], baseOrientation = self.baseOrientation, useFixedBase=True)
         self.ee_index = 4
         self.num_joints = self.p.getNumJoints(self.armUid)
 
@@ -76,10 +76,10 @@ class MLPEnv(gym.Env):
         self.p.changeVisualShape(self.armUid, 7, rgbaColor=[1,0,0,0.5])
 
         self.goal_pos = np.array([random.uniform(self.x_low_obs, self.x_high_obs), random.uniform(self.y_low_obs, self.y_high_obs)]).astype(np.float32)
-        self.p.addUserDebugLine(lineFromXYZ = [self.goal_pos[0], self.goal_pos[1], 0.33], lineToXYZ=[self.goal_pos[0], self.goal_pos[1], 0.37], lineColorRGB=[1,0,1], lineWidth = 10.0)
+        self.p.addUserDebugLine([self.goal_pos[0], self.goal_pos[1], 0], [self.goal_pos[0], self.goal_pos[1], 1], lineColorRGB=[1,0,0], lineWidth = 1.0)
 
-        self.resetOrn = self.p.getQuaternionFromEuler([0., 0, np.pi/2])
-        self.resetPose = self.p.calculateInverseKinematics(self.armUid, 4, [0, 0.165, 0.18], self.resetOrn, maxNumIterations=1000,
+        self.resetOrn = self.p.getQuaternionFromEuler([0., np.pi, np.pi/2])
+        self.resetPose = self.p.calculateInverseKinematics(self.armUid, 4, [0, 0.17, 0.23], self.resetOrn, maxNumIterations=1000,
                                                   residualThreshold=.01)
         for i in range(5):
             self.p.resetJointState(
@@ -88,6 +88,7 @@ class MLPEnv(gym.Env):
                 targetValue=self.resetPose[i],
             )
         self.p.stepSimulation()
+        print(self.goal_pos)
         return self.goal_pos
 
     def close(self):
@@ -111,10 +112,17 @@ class MLPEnv(gym.Env):
         )
         
         for i in range(5):
+            """
+            self.p.resetJointState(
+                bodyUniqueId=self.armUid,
+                jointIndex=i,
+                targetValue=self.robot_joint_positions[i],
+            )
+            """
             self.p.setJointMotorControl2(self.armUid, i, self.p.POSITION_CONTROL, targetPosition = self.robot_joint_positions[i])
         self.p.stepSimulation()
+        time.sleep(0.05)
         self.step_counter += 1
-        time.sleep(0.1)
 
         return self.reward()
     
@@ -122,19 +130,16 @@ class MLPEnv(gym.Env):
         self.robot_state = self.p.getLinkState(self.armUid, 7)[0]
         square_dx = (self.robot_state[0] - self.goal_pos[0])**2
         square_dy = (self.robot_state[1] - self.goal_pos[1])**2
-        square_dz = (self.robot_state[2] - 0.33)**2
+        square_dz = (self.robot_state[2])**2
 
         self.distance = sqrt(square_dx + square_dy + square_dz)
-
-        if(self.step_counter%10 == 0):
-            print(self.distance)
 
         x = self.robot_state[0]
         y = self.robot_state[1]
         z = self.robot_state[2]
         terminated = bool(x < self.x_low_obs or x > self.x_high_obs
                           or y < self.y_low_obs or y > self.y_high_obs
-                          or z < 0 or z > 0.4)
+                          or z < 0.02 or z > 0.25)
         endPremature = False
 
         if terminated:
@@ -144,18 +149,21 @@ class MLPEnv(gym.Env):
             print("X: ", x)
             print("Y: ", y)
             print("Z: ", z)
+            time.sleep(3)
 
         elif self.step_counter > self.maxSteps:
             reward = -0.1
             self.terminated = True
             endPremature = True
             print("Episode ended due to agent reaching 1000 timesteps without achieving goal. Final distance was: ", self.distance)
+            time.sleep(3)
 
         elif self.distance < 0.05:
             reward = 1
             self.terminated = True
             print("Episode successful! Final distance was: ", self.distance)
             print("Object location was: ", self.goal_pos)
+            time.sleep(3)
         else:
             reward = 0
             self.terminated = False
@@ -173,12 +181,13 @@ class MLPEnv(gym.Env):
 env = MLPEnv(is_render=True)
 dummyVecEnv = make_vec_env(lambda: env, n_envs=1)
 vecNorm = VecNormalize(dummyVecEnv)
-evalEnv = MLPEnv()
-dummyEvalEnv = make_vec_env(lambda: evalEnv, n_envs=1)
-evalNorm = VecNormalize(dummyEvalEnv)
-eval_callback = EvalCallback(evalNorm, best_model_save_path="./logs/",
-                             log_path="./logs/", eval_freq=20000,
-                             deterministic=True, render=False, n_eval_episodes=20)
-tensorboard_path = os.path.join(os.path.dirname(__file__))
-model = PPO("MlpPolicy", vecNorm, learning_rate = 0.0003, device = 'cuda', tensorboard_log=tensorboard_path)
-model.learn(total_timesteps=10000000, log_interval = 1, callback=eval_callback)
+model = PPO("MlpPolicy", vecNorm)
+#model = PPO.load("best_model", device = 'cpu')
+model.set_parameters("best_model")
+obs = vecNorm.reset()
+
+while True:
+    action, _states = model.predict(obs, deterministic=True)
+    obs, reward, done, info = vecNorm.step(action)
+    if done:
+      obs = vecNorm.reset()
