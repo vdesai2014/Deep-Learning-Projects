@@ -66,3 +66,5 @@ Over the holidays I was able to set up the Dofbot in real life and build a .URDF
 [4] - https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html
 
 [5] - https://spinningup.openai.com/en/latest/
+
+[6] - http://www.yahboom.net/study/Dofbot-Pi
