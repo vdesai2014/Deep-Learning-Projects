@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<robot name="dofbot">
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/base_link.STL" />
+            </geometry>
+            <material name="">
+                <color rgba="0.592156862745098 0.666666666666667 0.682352941176471 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/base_link.STL" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link1">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link1.STL" />
+            </geometry>
+            <material name="">
+                <color rgba="0 0.627450980392157 0.235294117647059 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link1.STL" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="joint1" type="revolute">
+        <origin xyz="0 0 0.06605" rpy="-0.010805 0 0" />
+        <parent link="base_link" />
+        <child link="link1" />
+        <axis xyz="0 0 1" />
+        <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
+    </joint>
+    <link name="link2">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link2.STL" />
+            </geometry>
+            <material name="">
+                <color rgba="0.592156862745098 0.666666666666667 0.682352941176471 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link2.STL" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="joint2" type="revolute">
+        <origin xyz="0 -0.00031873 0.04145" rpy="0 1.5708 0" />
+        <parent link="link1" />
+        <child link="link2" />
+        <axis xyz="0 0 1" />
+        <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
+    </joint>
+    <link name="link3">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link3.STL" />
+            </geometry>
+            <material name="">
+                <color rgba="0 0.627450980392157 0.235294117647059 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link3.STL" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="joint3" type="revolute">
+        <origin xyz="-0.08285 0 0" rpy="0 0 0" />
+        <parent link="link2" />
+        <child link="link3" />
+        <axis xyz="0 0 1" />
+        <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
+    </joint>
+    <link name="camera_base">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link4.STL" />
+            </geometry>
+            <material name="">
+                <color rgba="0.592156862745098 0.666666666666667 0.682352941176471 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/link4.STL" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.00001"/>
+            <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+    <joint name="joint4" type="revolute">
+        <origin xyz="-0.08285 0 0" rpy="0 0 0.0083081" />
+        <!-- <origin xyz="-0.1595 -0.017925 -0.01925" rpy="0 0 0.0083081" /> -->
+        <parent link="link3" />
+        <child link="camera_base" />
+        <axis xyz="0 0 1" />
+        <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
+    </joint>
+
+    <!-- link 5 -->
+    <link name="gripper">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="/meshes/gearbase.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/gearbase.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <!-- joint 5 -->
+    <joint name="joint5" type="revolute">
+        <origin xyz="-0.073 -0.002 -0.0009" rpy="0 -1.57 0"/>
+        <!-- <origin xyz="0.004 0.0125 0.02" rpy="0 -1.57 0"/> -->
+        <axis xyz="0 0 1"/>
+        <parent link="camera_base"/>
+        <child link="gripper"/>
+        <limit effort="30" velocity="1.0" lower="-3.1416" upper="3.1416"/>
+    </joint>
+
+    <link name="gear_left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="/meshes/gear.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/gear.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="g_1" type="revolute">
+        <origin xyz="0.0124 0.003 0.0335" rpy="1.5708 0 0"/>
+        <axis xyz="0 0 1"/>
+        <parent link="gripper"/>
+        <child link="gear_left"/>
+        <limit effort="30" velocity="1.0" lower="0.1" upper="-1.5708"/>
+    </joint>
+
+    <link name="finger_left">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5708 0 -1.42"/>
+            <geometry>
+                <mesh filename="/meshes/finger.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="1.5708 0 -1.42" />
+            <geometry>
+                <mesh filename="/meshes/finger.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="f_1" type="revolute">
+        <origin xyz="0.005 0.0297 0.002" rpy="0 0 1.5708"/>
+        <axis xyz="0 0 1"/>
+        <parent link="gear_left"/>
+        <child link="finger_left"/>
+        <limit effort="30" velocity="1.0" lower="-3" upper="3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.57"/>
+    </joint>
+    <link name="gear_right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="/meshes/gear.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/gear.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="g_2" type="revolute">
+        <origin xyz="-0.0124 0.001 0.0335" rpy="1.5708 0 3.14"/>
+        <axis xyz="0 0 1"/>
+        <parent link="gripper"/>
+        <child link="gear_right"/>
+        <limit effort="30" velocity="1.0" lower="0.2" upper="-1.5708"/>
+        <mimic joint="g_1" multiplier="1" offset="0"/>
+    </joint>
+    <link name="finger_right">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5708 0 -1.42"/>
+            <geometry>
+                <mesh filename="/meshes/finger.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="1.5708 0 -1.42" />
+            <geometry>
+                <mesh filename="/meshes/finger.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="f_2" type="revolute">
+        <origin xyz="0.005 0.0297 -0.003" rpy="0 0 1.5708"/>
+        <axis xyz="0 0 1"/>
+        <parent link="gear_right"/>
+        <child link="finger_right"/>
+        <limit effort="30" velocity="1.0" lower="-3" upper="3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.57"/>
+    </joint>
+    <link name="left_link_1">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="/meshes/linkage.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/linkage.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="ll_1" type="revolute">
+        <origin xyz="0.0045 0.001 0.0515" rpy="0 -1.42 0"/>
+        <axis xyz="0 1 0"/>
+        <parent link="gripper"/>
+        <child link="left_link_1"/>
+        <limit effort="30" velocity="1.0" lower="3" upper="-3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.42"/>
+    </joint>
+
+    <link name="left_link_2">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -1.42 0"/>
+            <geometry>
+                <mesh filename="/meshes/linkage.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/linkage.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="ll_2" type="revolute">
+        <origin xyz="0.0045 -0.004 0.0515" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <parent link="gripper"/>
+        <child link="left_link_2"/>
+        <limit effort="30" velocity="1.0" lower="3" upper="-3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.42"/>
+    </joint>
+    <link name="right_link_1">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -1.42 0"/>
+            <geometry>
+                <mesh filename="/meshes/linkage.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/linkage.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="rl_1" type="revolute">
+        <origin xyz="-0.0045 0.003 0.0515" rpy="0 0 3.14"/>
+        <axis xyz="0 1 0"/>
+        <parent link="gripper"/>
+        <child link="right_link_1"/>
+        <limit effort="30" velocity="1.0" lower="3" upper="-3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.42"/>
+    </joint>
+
+    <link name="right_link_2">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -1.42 0"/>
+            <geometry>
+                <mesh filename="/meshes/linkage.stl"/>
+            </geometry>
+            <material name="">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="/meshes/linkage.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="rl_2" type="revolute">
+        <origin xyz="-0.0045 -0.002 0.0515" rpy="0 0 3.14"/>
+        <axis xyz="0 1 0"/>
+        <parent link="gripper"/>
+        <child link="right_link_2"/>
+        <limit effort="30" velocity="1.0" lower="3" upper="-3"/>
+        <mimic joint="g_1" multiplier="-1" offset="-1.42"/>
+    </joint>
+</robot>

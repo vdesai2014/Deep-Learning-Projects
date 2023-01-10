@@ -5,7 +5,7 @@ import numpy as np
 
 class RealWorldDofbot():
     def __init__(self):
-        IP = "192.168.72.165"
+        IP = "192.168.221.165"
         PORT = 65432
         self.last_sync_time = 0
         self.sync_hz = 10000
@@ -30,6 +30,7 @@ class RealWorldDofbot():
         self.last_sync_time = time.time()
         packer = struct.Struct('f f f f f f')
         servo_angles = servoAngle
+        print("Sending angle: ", servoAngle)
         packed_data = packer.pack(*servo_angles)
         try:
             self.sock.sendall(packed_data)

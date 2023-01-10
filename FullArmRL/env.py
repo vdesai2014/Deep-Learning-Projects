@@ -99,7 +99,6 @@ class FullArmRL(gym.Env):
         q = transformations.quaternion_about_axis(angle, axis)
         transform = np.dot(transformations.quaternion_matrix(q), transform)
         self._h_robot_camera = transform
-        
         """
 
         gripper_opening_length_control = p.addUserDebugParameter("gripper_opening_length",
