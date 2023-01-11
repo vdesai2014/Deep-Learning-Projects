@@ -23,7 +23,16 @@ dofbot_path = os.path.join(os.path.dirname(__file__), 'fiverrArm.urdf')
 box_path = os.path.join(os.path.dirname(__file__), 'box.urdf')
 baseOrn = p.getQuaternionFromEuler([0, -np.pi, 0])
 id = p.loadURDF(dofbot_path, basePosition=[0,0,0.4], baseOrientation = baseOrn, useFixedBase=True)
-box = p.loadURDF(box_path, basePosition=[0,0.125,0.01], baseOrientation = baseOrn)
+box = p.loadURDF(box_path, basePosition=[0,0.125,0.01], baseOrientation = baseOrn, useFixedBase=True) #0.075 to 0.125 for Y
+for i in range(100):
+        p.stepSimulation()
+box2 = p.loadURDF(box_path, basePosition=[0.05,0.125,0.01], baseOrientation = baseOrn, useFixedBase=True) #0.05 to -0.05 for X
+for i in range(100):
+        p.stepSimulation()
+#box3 = p.loadURDF(box_path, basePosition=[0,0.1,0.01], baseOrientation = baseOrn)
+#for i in range(100):
+#        p.stepSimulation()
+#box4 = p.loadURDF(box_path, basePosition=[0,0.125,0.01], baseOrientation = baseOrn)
 p.changeDynamics(box, -1, mass=2.0, lateralFriction=1.5)
 p.changeVisualShape(id, -1, rgbaColor=[0,0,0,1])
 p.changeVisualShape(id, 0, rgbaColor=[0,1,0,1])
@@ -31,6 +40,9 @@ p.changeVisualShape(id, 1, rgbaColor=[1,1,0,1])
 p.changeVisualShape(id, 2, rgbaColor=[0,1,0,1])
 p.changeVisualShape(id, 3, rgbaColor=[1,1,0,1])
 p.changeVisualShape(id, 4, rgbaColor=[0,0,0,1])
+p.changeVisualShape(box, -1, rgbaColor=[0,0,0,1])
+p.changeVisualShape(box2, -1, rgbaColor=[0,0,0,1])
+#p.changeVisualShape(box3, -1, rgbaColor=[0,0,0,1])
 
 x_in = p.addUserDebugParameter("X", -0.5, 0.5, 0)
 y_in = p.addUserDebugParameter("Y", -0.5, 0.5, 0.164)
@@ -68,11 +80,11 @@ while(True):
     p.setJointMotorControl2(id, 11, p.POSITION_CONTROL, targetPosition = -g1)
     p.setJointMotorControl2(id, 12, p.POSITION_CONTROL, targetPosition = -g1)
 
-    RotX = 0.5
+    RotX = 0.5#p.readUserDebugParameter(rotX)
     RotY = p.readUserDebugParameter(rotY)
     RotZ = p.readUserDebugParameter(rotZ)
     TransX = p.readUserDebugParameter(transX)
-    TransY = 0.065
+    TransY = 0.065#p.readUserDebugParameter(transY)
     TransZ = p.readUserDebugParameter(transZ)
     camRotation = p.getQuaternionFromEuler([RotX, RotY, RotZ])
     transform_dict = {'translation' : [TransX, TransY, TransZ], 'rotation' : [camRotation[0], camRotation[1], camRotation[2], camRotation[3]]} 

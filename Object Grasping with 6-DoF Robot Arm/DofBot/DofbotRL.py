@@ -64,26 +64,19 @@ class DofbotRL(gym.Env):
         box_path = os.path.join(os.path.dirname(__file__), 'box.urdf')
         baseOrn = self.physicsClient.getQuaternionFromEuler([0, -np.pi, 0])
         self.id = self.physicsClient.loadURDF(dofbot_path, basePosition=[0,0,self.initial_height], baseOrientation = baseOrn, useFixedBase=True)
-        self.boxX = random.uniform(-0.05, 0.05)
-        self.box = self.physicsClient.loadURDF(box_path, basePosition=[self.boxX ,0.125,0.05], baseOrientation = baseOrn)
-        self.physicsClient.changeDynamics(self.box, -1, mass=1.0, lateralFriction=2.0)
         self.physicsClient.changeVisualShape(self.id, -1, rgbaColor=[0,0,0,1])
         self.physicsClient.changeVisualShape(self.id, 0, rgbaColor=[0,1,0,1])
         self.physicsClient.changeVisualShape(self.id, 1, rgbaColor=[1,1,0,1])
         self.physicsClient.changeVisualShape(self.id, 2, rgbaColor=[0,1,0,1])
         self.physicsClient.changeVisualShape(self.id, 3, rgbaColor=[1,1,0,1])
         self.physicsClient.changeVisualShape(self.id, 4, rgbaColor=[0,0,0,1])
-        self.physicsClient.changeVisualShape(self.box, -1, rgbaColor=[0,0,0,1])
-        
-        for i in range(100):
-            self.physicsClient.stepSimulation()
 
         initialX = 0 
         initialY = 0.164
         initialZ = 0.2212
         self.roll = 0
         self.pitch = np.pi
-        self.yaw = np.pi
+        self.yaw = 0
         initialGripper = -1.57
         orn = self.physicsClient.getQuaternionFromEuler([self.roll, self.pitch, self.yaw])
         jointPoses = self.physicsClient.calculateInverseKinematics(self.id, 4, [initialX, initialY, initialZ], orn, maxNumIterations=1000,
@@ -99,6 +92,14 @@ class DofbotRL(gym.Env):
         self.physicsClient.resetJointState(self.id, 11, -initialGripper)
         self.physicsClient.resetJointState(self.id, 12, -initialGripper)
         self.physicsClient.stepSimulation()
+
+        self.boxX = random.uniform(-0.05, 0.05)
+        self.boxY = random.uniform(0.075, 0.125)
+        self.box = self.physicsClient.loadURDF(box_path, basePosition=[self.boxX ,self.boxY,0.05], baseOrientation = baseOrn)
+        self.physicsClient.changeDynamics(self.box, -1, mass=1.0, lateralFriction=2.0)
+        self.physicsClient.changeVisualShape(self.box, -1, rgbaColor=[0,0,0,1])
+        for i in range(100):
+            self.physicsClient.stepSimulation()
         
         self.currentX = self.physicsClient.getLinkState(self.id, 4)[0][0]
         self.currentY = self.physicsClient.getLinkState(self.id, 4)[0][1]
@@ -154,6 +155,7 @@ class DofbotRL(gym.Env):
             for j in range(5):
                 self.physicsClient.setJointMotorControl2(self.id, j, self.physicsClient.POSITION_CONTROL, targetPosition = jointPoses[j], maxVelocity = 3.0)
             self.physicsClient.stepSimulation()
+            time.sleep(0.05)
 
         if(self.physicsClient.getBasePositionAndOrientation(self.box)[0][2] > 0.05):
             reward = 1
@@ -168,7 +170,6 @@ class DofbotRL(gym.Env):
         return reward
     
     def step(self, action):
-        print(action)
         self.newX = self.currentX + (action[0]*0.01) 
         self.newY = self.currentY + (action[1]*0.01)
         self.newZ = self.currentZ - 0.001
@@ -194,20 +195,22 @@ class DofbotRL(gym.Env):
             reward = 0
             done = False 
             info = {}
+        time.sleep(0.05)
         return obs, reward, done, {"is_success":reward==1, "episode_step": self.envStepCounter, "episode_rewards": reward}
 
 """
+env = DofbotRL(True)
 while(True):
-    _, _, done,_ = env.step([0.05, 0])
+    _, _, done,_ = env.step([0.05, -0.1])
     if(done):
         env.reset()
 """
-env = DofbotRL(False)
+env = DofbotRL(True)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env, norm_obs = False)
 evalEnv = DofbotRL(False)
 eval_callback = EvalCallback(evalEnv, best_model_save_path="./logs/",
                              log_path="./logs/", eval_freq=15000,
                              deterministic=True, render=False, n_eval_episodes=10)
-model = SAC("CnnPolicy", env, verbose=2, seed = 0, batch_size = 128, learning_rate = 0.0003, tensorboard_log="./logs/", device = 'cuda', policy_kwargs=dict(normalize_images=False))
+model = SAC("CnnPolicy", env, verbose=2, seed = 0, batch_size = 128, learning_rate = 0.0003, buffer_size = 1000000, tensorboard_log="./logs/", device = 'cuda', policy_kwargs=dict(normalize_images=False))
 model.learn(total_timesteps=1000000, log_interval=1, callback = eval_callback)
