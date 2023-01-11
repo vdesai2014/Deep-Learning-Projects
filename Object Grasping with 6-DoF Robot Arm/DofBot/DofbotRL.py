@@ -209,6 +209,8 @@ env = DofbotRL(True)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env, norm_obs = False)
 evalEnv = DofbotRL(False)
+evalEnv = make_vec_env(lambda: evalEnv, n_envs=1)
+evalEnv = VecNormalize(evalEnv, norm_obs = False)
 eval_callback = EvalCallback(evalEnv, best_model_save_path="./logs/",
                              log_path="./logs/", eval_freq=15000,
                              deterministic=True, render=False, n_eval_episodes=10)
