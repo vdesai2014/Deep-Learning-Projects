@@ -94,7 +94,7 @@ class DofbotRL(gym.Env):
         self.physicsClient.stepSimulation()
 
         self.boxX = random.uniform(-0.05, 0.05)
-        self.boxY = random.uniform(0.075, 0.125)
+        self.boxY = 0.125#random.uniform(0.075, 0.125)
         self.box = self.physicsClient.loadURDF(box_path, basePosition=[self.boxX ,self.boxY,0.05], baseOrientation = baseOrn)
         self.physicsClient.changeDynamics(self.box, -1, mass=1.0, lateralFriction=2.0)
         self.physicsClient.changeVisualShape(self.box, -1, rgbaColor=[0,0,0,1])
@@ -163,10 +163,12 @@ class DofbotRL(gym.Env):
             finalXCoordinate = self.physicsClient.getLinkState(self.id, 4)[0][0]
             finalYCoordiante = self.physicsClient.getLinkState(self.id, 4)[0][1]
             desiredXCoordinate = self.boxX
-            desiredYCoordinate = 0.125
+            desiredYCoordinate = self.boxY
             distanceError = math.sqrt(((finalXCoordinate-desiredXCoordinate)**2)+((finalYCoordiante-desiredYCoordinate)**2))
             reward = -distanceError
-        
+        if(reward == 1):
+            for i in range(5):
+                print("IT DID THE THING!!!!!")
         return reward
     
     def step(self, action):
@@ -195,7 +197,6 @@ class DofbotRL(gym.Env):
             reward = 0
             done = False 
             info = {}
-        time.sleep(0.05)
         return obs, reward, done, {"is_success":reward==1, "episode_step": self.envStepCounter, "episode_rewards": reward}
 
 """
@@ -205,7 +206,8 @@ while(True):
     if(done):
         env.reset()
 """
-env = DofbotRL(True)
+
+env = DofbotRL(False)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env, norm_obs = False)
 evalEnv = DofbotRL(False)
