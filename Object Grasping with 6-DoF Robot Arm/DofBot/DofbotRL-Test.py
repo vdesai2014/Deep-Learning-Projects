@@ -17,8 +17,7 @@ import pybullet_utils.bullet_client as bc
 import os
 import transform_utils
 import transformations
-from PIL import Image
-import imageio
+import collections
 
 class DofbotRL(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -48,6 +47,11 @@ class DofbotRL(gym.Env):
         transform_dict = {'translation' : [TransX, TransY, TransZ], 'rotation' : [camRotation[0], camRotation[1], camRotation[2], camRotation[3]]} 
         transform = transform_utils.from_dict(transform_dict)
         self._h_robot_camera = transform
+        self.episode_queue = collections.deque(maxlen=10)
+        self.boxYlower = 0.125
+        self.boxYupper = 0.125
+        self.difficultyLevel = 0 
+        self.episodeCount = 0
         self.reset() 
     
     def reset(self):
@@ -76,7 +80,7 @@ class DofbotRL(gym.Env):
         initialZ = 0.2212
         self.roll = 0
         self.pitch = np.pi
-        self.yaw = 0
+        self.yaw = np.pi
         initialGripper = -1.57
         orn = self.physicsClient.getQuaternionFromEuler([self.roll, self.pitch, self.yaw])
         jointPoses = self.physicsClient.calculateInverseKinematics(self.id, 4, [initialX, initialY, initialZ], orn, maxNumIterations=1000,
@@ -92,10 +96,13 @@ class DofbotRL(gym.Env):
         self.physicsClient.resetJointState(self.id, 11, -initialGripper)
         self.physicsClient.resetJointState(self.id, 12, -initialGripper)
         self.physicsClient.stepSimulation()
-
-        self.boxX = random.uniform(-0.05, 0.05)
-        self.boxY = 0.125#random.uniform(0.075, 0.125)
-        self.box = self.physicsClient.loadURDF(box_path, basePosition=[self.boxX ,self.boxY,0.05], baseOrientation = baseOrn)
+        #self.boxX = random.uniform(-0.05, 0.05)
+        self.boxX = 0
+        if(self.boxYlower > 0.08):
+            if(self.curriculumMonitor()):
+                self.difficultyLevel += 1
+        self.boxY = random.uniform(self.boxYlower, self.boxYupper)
+        self.box = self.physicsClient.loadURDF(box_path, basePosition=[self.boxX,self.boxY,0.05], baseOrientation = baseOrn)
         self.physicsClient.changeDynamics(self.box, -1, mass=1.0, lateralFriction=2.0)
         self.physicsClient.changeVisualShape(self.box, -1, rgbaColor=[0,0,0,1])
         for i in range(100):
@@ -110,6 +117,19 @@ class DofbotRL(gym.Env):
 
     def __del__(self):
         self.physicsClient.disconnect()
+    
+    def curriculumMonitor(self):
+        if(len(self.episode_queue) == 10):
+            if(sum(self.episode_queue)>7):
+                self.boxYlower -= 0.0125
+                difficultyIncrease = True
+                print("I MADE THE THING HARDER")
+                print("I MADE THE THING HARDER")
+                print("I MADE THE THING HARDER")
+                for i in range(10):
+                    self.episode_queue.appendleft(0)
+                return True
+        return False
 
     def getObservation(self):
         pos, orn, _, _, _, _ = self.physicsClient.getLinkState(self.id, 4)
@@ -155,7 +175,6 @@ class DofbotRL(gym.Env):
             for j in range(5):
                 self.physicsClient.setJointMotorControl2(self.id, j, self.physicsClient.POSITION_CONTROL, targetPosition = jointPoses[j], maxVelocity = 3.0)
             self.physicsClient.stepSimulation()
-            time.sleep(0.05)
 
         if(self.physicsClient.getBasePositionAndOrientation(self.box)[0][2] > 0.05):
             reward = 1
@@ -167,10 +186,17 @@ class DofbotRL(gym.Env):
             distanceError = math.sqrt(((finalXCoordinate-desiredXCoordinate)**2)+((finalYCoordiante-desiredYCoordinate)**2))
             reward = -distanceError
         print("Reward was: ", reward)
+        print("Current state of queue is: ", self.episode_queue)
+        print("Difficulty level and boxYlower are: ", self.difficultyLevel, self.boxYlower)
+        print("Current Episode Count: ", self.episodeCount)
+        self.episodeCount += 1
+        if(reward == 1):
+            self.episode_queue.appendleft(1)
+        else:
+            self.episode_queue.appendleft(0)
         return reward
     
     def step(self, action):
-        print(action)
         self.newX = self.currentX + (action[0]*0.01) 
         self.newY = self.currentY + (action[1]*0.01)
         self.newZ = self.currentZ - 0.001
@@ -196,17 +222,16 @@ class DofbotRL(gym.Env):
             reward = 0
             done = False 
             info = {}
-        time.sleep(0.05)
         return obs, reward, done, {"is_success":reward==1, "episode_step": self.envStepCounter, "episode_rewards": reward}
 
-"""
+
 env = DofbotRL(True)
 while(True):
-    _, _, done,_ = env.step([0.05, -0.1])
+    _, _, done,_ = env.step([0, 0])
     if(done):
         env.reset()
-"""
 
+"""
 env = DofbotRL(True)
 dummyVecEnv = make_vec_env(lambda: env, n_envs=1)
 vecNorm = VecNormalize(dummyVecEnv, norm_obs = False)
@@ -218,7 +243,7 @@ while True:
     obs, reward, done, info = vecNorm.step(action)
     if done:
       obs = vecNorm.reset() 
-
+"""
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env, norm_obs = False)
 evalEnv = DofbotRL(False)
