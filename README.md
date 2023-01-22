@@ -68,20 +68,21 @@ Based on the literature on Sim2Real, I feel pretty good about having the simulat
 
 The critic network’s parameters can be learned by minimizing the specific temporal difference error shown below. This temporal difference error in standard reinforcement learning algorithms is the square of the difference between the predicted value of the current state, and the immediate reward received for a given action and the predicted value of the next state. SAC modifies this general TD-error equation and introduces a term to account for entropy.
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_criticobjective.png" width="626" height="64" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_criticobjective.png" width="1071" height="47" />
 
 The policy network updates are performed to drive towards a set of parameters that maximize the soft Q-value (critic network’s prediction of the “goodness” of a state/action pair) of actions taken by the policy. This is done by updating the policy to minimize the KL-divergence between the current policy and one which outputs actions with large Q-values. This expression which is minimized is shown below. 
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_policyobjective.png" width="626" height="64" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_policyobjective.png" width="357" height="63" />
 
 In practice, gradients cannot be directly computed from this expression and so the expression below is what is actually implemented, as it is a surrogate to the one above and yields the same gradients. The proof for going from the one above to the one below is pretty technical and at the moment, over my head, but I trust the authors given the results I have gotten using SAC! 
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_policyobjectiveimplement.png" width="626" height="64" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_policyobjectiveimplement.png" width="334" height="29" />
 
 In the original SAC paper the alpha variable, which shows up in objectives for both the policy and the critic, was a fixed variable but a more recent update proposed the equation below to allow for the entropy objective to be automatically tuned as training progresses. The H_bar variable in the equation below is the lower bound for policy entropy and defined at the start of training. 
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_alpha.png" width="626" height="64" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_alpha.png" width="451" height="59" />
 
+For my next update I hope to have gotten to the same success rate & policy effectiveness as I showed above with Stable Baselines 3, but with my own implementation of the CNN/Policy Network/Critic Network and training algorithms. 
 
 
 *References*
@@ -97,3 +98,9 @@ In the original SAC paper the alpha variable, which shows up in objectives for b
 [5] - https://spinningup.openai.com/en/latest/
 
 [6] - http://www.yahboom.net/study/Dofbot-Pi
+
+[7] - https://arxiv.org/abs/1812.05905
+
+[8] - https://github.com/thomashirtz/soft-actor-critic
+
+[9] - https://www.youtube.com/watch?v=_nFXOZpo50U
