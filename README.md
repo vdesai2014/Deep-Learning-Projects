@@ -52,7 +52,13 @@ Over the holidays I was able to set up the Dofbot in real life and build a .URDF
 
 <img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/simulated_dofbot.png" width="600" height="338" />
 
+**Jan 22nd Update**
 
+I got a successful policy working in simulation! I was actually able to make things work using Stable Baselines 3 with some modifications and a denser reward structure. 
+
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/dofbotsuccessful.gif?raw=true" width="600" height="338" />
+
+The episodes are fixed length (100 timesteps) and in each time step the policy can choose to move the end-effector in the XY plane by some amount. Z movement is forced to be a certain negative distance in each step in order to speed up convergence. The computed end-effector coordinates are then fed into an inverse kinematics solver which commands the robot servos to the proper positions. The learned policy takes in depth images from a camera fixed to the end-effector and has gotten very good at panning the end-effector until it sees the block, and then centering the end-effector on the block so that the grasp is successful when the 100th time step occurs and the grasp is executed. The RL algorithm I choose was Soft Actor Critic as I found it to converge fairly quickly. While PPO or other policy gradient methods could work, I believe the reward structure is not conducive for sample efficient learning. Policy gradient algorithms, while more stable than an offline actor-critic based algorithm like SAC, typically work better when there is a continuous reward signal in the RL environment. This is not really the case for intermittently successful grasps. Another useful trick to speed up training was using curriculum learning by slowly scaling up the area over which blocks could randomly spawn. The initial area was 10cm x 0m and scaled up to 10cm x 5cm over four discrete steps. This was important because blocks closer to the origin are initially out of visual range of the camera’s field of view. A randomly initialized policy exposed to the full area to start with would struggle to deal with episodes where blocks spawned out of view. 
 
 
 *References*
