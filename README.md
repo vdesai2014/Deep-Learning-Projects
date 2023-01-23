@@ -78,7 +78,7 @@ The policy network updates are performed to drive towards a set of parameters th
 
 In practice, gradients cannot be directly computed from this expression and so the expression below is what is actually implemented, as it is a surrogate to the one above and yields the same gradients. The proof for going from the one above to the one below is pretty technical and at the moment, over my head, but I trust the authors given the results I have gotten using SAC! 
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sac_policyobjectiveimplement2.png" width="334" height="29" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/DofBot/sacpolicyobjectiveimplement2.png" width="334" height="29" />
 
 In the original SAC paper the alpha variable, which shows up in objectives for both the policy and the critic, was a fixed variable but a more recent update proposed the equation below to allow for the entropy objective to be automatically tuned as training progresses. The H_bar variable in the equation below is the lower bound for policy entropy and defined at the start of training. 
 
