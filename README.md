@@ -73,7 +73,7 @@ The critic network’s parameters can be learned by minimizing the specific temp
 
 Something that is pretty fascinating is that the generic temperal difference error equation was shown by neuroscientists in the 90s to explain activity of certain dopamine neurons. These neurons in the brain spiked in activity when the primate was presented with an unexpected reward (high prediction error) but would taper activity towards baseline once the reward was provided with a predictable cue (low prediction error). This may also explain why intermittent rewards, such as those provided by social media or gambling, can be so addictive. These activities have inherent reward stochasticity (high prediction error) which results in high stimulation of dopamine circuits.
 
-<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/Dofbot-RL/sac_criticobjective.png" width="1071" height="47"/>
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/Dofbot-RL/sac_criticobjective.png" width="623" height="61"/>
 
 The policy network updates are performed to drive towards a set of policy parameters that maximize the soft Q-value (critic network’s prediction of the “goodness” of a state/action pair) of actions taken by the policy. This is done by updating the policy to minimize the KL-divergence between the current distribution of actions taken under a given state, and the ideal action distribution with an optimal Q-value for that state. 
 
