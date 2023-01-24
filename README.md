@@ -71,11 +71,11 @@ Based on the literature on Sim2Real, I feel pretty good about having the simulat
 
 The critic network’s parameters can be learned by minimizing the specific temporal difference error shown below. This temporal difference error in standard reinforcement learning algorithms is the square of the difference between the predicted value of the current state, and the immediate reward received for a given action and the predicted value of the next state. SAC modifies this general TD-error equation and introduces a term to account for entropy.
 
-Something that is pretty fascinating is that the generic temperal difference error equation was shown by neuroscientists in the 90s to explain activity of certain dopamine neurons. These neurons in the brain spiked in activity when the primate was presented with an unexpected reward (high prediction error) but would taper activity towards baseline once the reward was provided with a predictable cue (low prediction error). This may also explain why intermittent rewards, such as those provided by social media or gambling, can be so addictive. The inability for our brain's critic model to predict future rewards in these activites keeps us hooked in an effort to drive prediction error to zero. 
+Something that is pretty fascinating is that the generic temperal difference error equation was shown by neuroscientists in the 90s to explain activity of certain dopamine neurons. These neurons in the brain spiked in activity when the primate was presented with an unexpected reward (high prediction error) but would taper activity towards baseline once the reward was provided with a predictable cue (low prediction error). This may also explain why intermittent rewards, such as those provided by social media or gambling, can be so addictive. These activities have inherent reward stochasticity (high prediction error) which results in high stimulation of dopamine circuits.
 
 <img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/Dofbot_RL/sac_criticobjective.png" width="1071" height="47"/>
 
-The policy network updates are performed to drive towards a set of parameters that maximize the soft Q-value (critic network’s prediction of the “goodness” of a state/action pair) of actions taken by the policy. This is done by updating the policy to minimize the KL-divergence between the current policy and one which outputs actions with large Q-values. This expression which is minimized is shown below. 
+The policy network updates are performed to drive towards a set of policy parameters that maximize the soft Q-value (critic network’s prediction of the “goodness” of a state/action pair) of actions taken by the policy. This is done by updating the policy to minimize the KL-divergence between the current distribution of actions taken under a given state, and the ideal action distribution with an optimal Q-value for that state. 
 
 <img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/Dofbot-RL/sac_policyobjective.png" width="463" height="62"/>
 
@@ -87,7 +87,7 @@ In the original SAC paper the alpha variable, which shows up in objectives for b
 
 <img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Object%20Grasping%20with%206-DoF%20Robot%20Arm/Dofbot-RL/sac_alpha.png" width="451" height="59"/>
 
-For my next update I hope to have gotten to the same success rate & policy effectiveness as I showed above with Stable Baselines 3, but with my own implementation of the CNN/Policy Network/Critic Network and training algorithms. 
+For my next update I hope to have gotten to the same success rate & policy effectiveness as I got with Stable Baselines 3, but with my own implementation of the CNN/Policy Network/Critic Network and training algorithms. 
 
 
 *References*
@@ -109,3 +109,5 @@ For my next update I hope to have gotten to the same success rate & policy effec
 [8] - https://github.com/thomashirtz/soft-actor-critic
 
 [9] - https://www.youtube.com/watch?v=_nFXOZpo50U
+
+[10] - https://www.deepmind.com/blog/dopamine-and-temporal-difference-learning-a-fruitful-relationship-between-neuroscience-and-ai
