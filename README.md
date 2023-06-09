@@ -16,7 +16,7 @@ Regardless, it is interesting to visualize how layer activations change as train
 
 June 8th Update - I refactored the visualization code to be a bit cleaner a month ago and also changed the visualization to more acccurately represent the way positively weighted connections developed as training progressed. This net is also training on real data (cat images)! Code is under 'NeuNetVisualization - Rev 2.py' in the Neural Network Visualizer folder. 
 
-<img src="h[ttps://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif](https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/output.gif)" width="800" height="800" />
+<img src="https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/output.gif" width="800" height="800" />
 
 *References*
 
