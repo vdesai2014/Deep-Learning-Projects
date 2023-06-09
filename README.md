@@ -14,6 +14,10 @@ In order to better understand artificial neural networks, I implemented a feed-f
 
 Regardless, it is interesting to visualize how layer activations change as training progresses over 20,000 epochs, and also how relatively few neurons make a meaningful impact on the networks prediction. This effect is well-known and prominent for small networks such as the one being visualized. This is the reason why network weights are typically "pruned" after being trained, as keeping only pieces of the network with larger weights allows for much faster performance at inference time. Interestingly, this [effect can also be used in reverse](https://ai.facebook.com/blog/understanding-the-generalization-of-lottery-tickets-in-neural-networks/), by starting with a very specific initialization & training only specific parts of the network. The difficulty with this approach when training large networks lies in identifying exactly which intersection of network structure and specific initiailization weights is the "lottery ticket".
 
+June 8th Update - I refactored the visualization code to be a bit cleaner a month ago and also changed the visualization to more acccurately represent the way positively weighted connections developed as training progressed. This net is also training on real data (cat images)! Code is under 'NeuNetVisualization - Rev 2.py' in the Neural Network Visualizer folder. 
+
+<img src="h[ttps://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/Network%20Training.gif](https://github.com/vdesai2014/Deep-Learning-Projects/blob/main/Neural%20Network%20Visualizer/output.gif)" width="800" height="800" />
+
 *References*
 
 [1] - https://github.com/fanghao6666/neural-networks-and-deep-learning/blob/master/py/Building%20your%20Deep%20Neural%20Network%20Step%20by%20Step%20v3.py
