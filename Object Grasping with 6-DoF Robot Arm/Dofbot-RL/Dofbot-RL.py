@@ -219,13 +219,6 @@ class DofbotRL(gym.Env):
             info = {}
         return obs, reward, done, {"is_success":reward==1, "episode_step": self.envStepCounter, "episode_rewards": reward}
 
-"""
-while(True):
-    _, _, done,_ = env.step([0.05, 0])
-    if(done):
-        env.reset()
-"""
-
 env = DofbotRL(False)
 env = make_vec_env(lambda: env, n_envs=1)
 env = VecNormalize(env, norm_obs = False)
@@ -236,5 +229,4 @@ eval_callback = EvalCallback(evalEnv, best_model_save_path="./logs/",
                              log_path="./logs/", eval_freq=15000,
                              deterministic=True, render=False, n_eval_episodes=10)
 model = SAC("CnnPolicy", env, verbose=2, seed = 0, batch_size = 128, learning_rate = 0.0003, buffer_size = 1000000, tensorboard_log="./logs/", device = 'cuda', policy_kwargs=dict(normalize_images=False))
-model.set_parameters("best_model")
 model.learn(total_timesteps=1000000, log_interval=1, callback = eval_callback)

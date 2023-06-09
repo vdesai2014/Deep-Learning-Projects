@@ -1,0 +1,21 @@
+Epoch 1, Average Training Loss: 0.12834733572689075
+Epoch 1, Average Validation Loss: 0.08723988785193516
+Epoch 2, Average Training Loss: 0.08705654595662089
+Epoch 2, Average Validation Loss: 0.08777048925940807
+Epoch 3, Average Training Loss: 0.087823536789533
+Epoch 3, Average Validation Loss: 0.08432212242713341
+Epoch 4, Average Training Loss: 0.05830479847285354
+Epoch 4, Average Validation Loss: 0.019168992007437807
+Epoch 5, Average Training Loss: 0.0092614065789057
+Epoch 5, Average Validation Loss: 0.005489771612561666
+Epoch 6, Average Training Loss: 0.003385753300746234
+Epoch 6, Average Validation Loss: 0.002186202162052863
+Epoch 7, Average Training Loss: 0.0013454884565627491
+Epoch 7, Average Validation Loss: 0.0009605238626066309
+Epoch 8, Average Training Loss: 0.0006474779858533632
+Epoch 8, Average Validation Loss: 0.000933482029582732
+Epoch 9, Average Training Loss: 0.00045401040382414277
+Epoch 9, Average Validation Loss: 0.0006197892877165801
+Epoch 10, Average Training Loss: 0.0003184162464077037
+Epoch 10, Average Validation Loss: 0.0005675515656968435
+Finished Training

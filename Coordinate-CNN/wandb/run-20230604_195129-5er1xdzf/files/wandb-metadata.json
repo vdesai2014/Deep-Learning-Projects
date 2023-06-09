@@ -1,0 +1,99 @@
+{
+    "os": "Linux-5.15.0-56-generic-x86_64-with-glibc2.35",
+    "python": "3.9.15",
+    "heartbeatAt": "2023-06-05T02:51:31.548601",
+    "startedAt": "2023-06-05T02:51:29.951820",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/vrushank/Documents/GitHub/Deep-Learning-Projects/Coordinate-CNN/CoordinateCNN.py",
+    "codePath": "CoordinateCNN.py",
+    "host": "vrushank-IdeaPad-Gaming-3-15ACH6",
+    "username": "vrushank",
+    "executable": "/home/vrushank/anaconda3/envs/DeepLearn/bin/python",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 959.5878333333334,
+        "min": 400.0,
+        "max": 4280.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3625.956,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 3889.098,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4280.0
+        }
+    ],
+    "disk": {
+        "total": 228.96833419799805,
+        "used": 83.59583282470703
+    },
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+            "memory_total": 4294967296
+        }
+    ],
+    "memory": {
+        "total": 5.646450042724609
+    }
+}
