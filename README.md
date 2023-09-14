@@ -1,6 +1,6 @@
 # Deep-Learning-Projects
 
-NOTICE: This repo is currently very poorly structured and has lots of bad-practice code (bad variable naming scheme/no comments/poor compartmentalization/etc). I recognize this and intend on cleaning it up soon. I would not write code of this manner in a production environment. 
+NOTICE: This repo is currently very poorly structured and has lots of bad-practice code (bad variable naming scheme/no comments/poor compartmentalization/etc) from earlier in my programming journey!
 
 A compilation of self-learned projects to showcase my ability to independently work on AI/Robotics problems.  
 
